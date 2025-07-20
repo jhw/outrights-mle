@@ -21,7 +21,7 @@ func OptimizeRatings(request MLERequest) (*MLEResult, error) {
 	}
 
 	// Initialize MLE solver with historical data
-	solver := NewMLESolver(request.HistoricalData, request.Options)
+	solver := NewMLESolver(request.HistoricalData, request.Options, request.PromotedTeams)
 
 	// Run MLE optimization
 	params, err := solver.Optimize()

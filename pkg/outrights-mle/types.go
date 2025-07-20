@@ -39,6 +39,7 @@ type MLEOptions struct {
 	Tolerance   float64 `json:"tolerance"`    // Convergence tolerance (default: 1e-6)
 	LearningRate float64 `json:"learning_rate"` // Base learning rate (default: 0.1)
 	TimeDecay   float64 `json:"time_decay"`   // Time decay factor (default: 0.78)
+	Debug       bool    `json:"debug"`        // Enable debug output during optimization
 }
 
 
@@ -54,10 +55,11 @@ type MLEResult struct {
 
 // MLERequest contains all parameters needed for MLE optimization
 type MLERequest struct {
-	League         string        `json:"league"`
-	Season         string        `json:"season"`
-	HistoricalData []MatchResult `json:"historical_data"`
-	Options        MLEOptions    `json:"options"`
+	League         string            `json:"league"`
+	Season         string            `json:"season"`
+	HistoricalData []MatchResult     `json:"historical_data"`
+	PromotedTeams  map[string]bool   `json:"promoted_teams"`  // Teams with historical league changes
+	Options        MLEOptions        `json:"options"`
 }
 
 

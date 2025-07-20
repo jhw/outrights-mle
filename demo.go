@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	outrightsmle "github.com/jhw/go-outrights-mle/pkg/outrights-mle"
@@ -22,8 +23,10 @@ func main() {
 		maxiter     = flag.Int("maxiter", 200, "Maximum MLE iterations")
 		tolerance   = flag.Float64("tolerance", 1e-6, "Convergence tolerance")
 		verbose     = flag.Bool("verbose", false, "Verbose output")
+		debug       = flag.Bool("debug", false, "Enable debug output during MLE optimization")
 		dataFile    = flag.String("data", "", "Path to historical match data JSON file")
 		fetchEvents = flag.Bool("fetch-events", false, "Fetch events data from football-data.co.uk and save to fixtures/events.json")
+		runModel    = flag.Bool("run-model", false, "Run MLE model on all leagues using events data")
 	)
 	flag.Parse()
 
@@ -32,20 +35,28 @@ func main() {
 
 	// Handle fetch-events flag
 	if *fetchEvents {
-		fmt.Printf("🌐 Fetching events from football-data.co.uk...\n")
+		fmt.Printf("🌐 Fetch events feature temporarily disabled\n")
+		return
+	}
+
+	// Handle run-model flag
+	if *runModel {
+		fmt.Printf("🧮 Running MLE model on all leagues...\n")
 		
-		events, err := FetchAllEvents()
+		// Load events data
+		events, err := loadEventsFromFile("fixtures/events.json")
 		if err != nil {
-			log.Fatalf("Failed to fetch events: %v", err)
+			log.Fatalf("Failed to load events data: %v", err)
 		}
 
-		// Save to fixtures/events.json
-		eventsFile := "fixtures/events.json"
-		if err := saveEventsToFile(events, eventsFile); err != nil {
-			log.Fatalf("Failed to save events: %v", err)
+		// Run model and get team ratings by league
+		teamRatingsByLeague, err := runMLEModel(events, *debug, *maxiter, *tolerance)
+		if err != nil {
+			log.Fatalf("MLE model failed: %v", err)
 		}
 
-		fmt.Printf("\n✅ Successfully saved %d events to %s\n", len(events), eventsFile)
+		// Display results for latest season
+		displayTeamRatingsByLeague(teamRatingsByLeague, *verbose)
 		return
 	}
 
@@ -309,4 +320,245 @@ func loadEventsFromFile(filename string) ([]outrightsmle.MatchResult, error) {
 	}
 
 	return events, nil
+}
+
+// TeamRatingResult holds team ratings with league information
+type TeamRatingResult struct {
+	League     string
+	Season     string
+	TeamRating outrightsmle.TeamRating
+}
+
+// runMLEModel processes all events and returns team ratings grouped by league for latest season
+func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tolerance float64) (map[string][]TeamRatingResult, error) {
+	if len(events) == 0 {
+		return nil, fmt.Errorf("no events data provided")
+	}
+
+	// Find latest season dynamically
+	latestSeason := findLatestSeason(events)
+	if debug {
+		fmt.Printf("🔍 Latest season detected: %s\n", latestSeason)
+	}
+
+	// Group events by league
+	eventsByLeague := groupEventsByLeague(events)
+	if debug {
+		fmt.Printf("🔍 Found events for leagues: %v\n", getMapKeys(eventsByLeague))
+	}
+
+	// Detect promoted/relegated teams across all data
+	promotedTeams := detectPromotedTeams(events, debug)
+	if debug {
+		fmt.Printf("📊 Found %d teams with historical league changes\n", len(promotedTeams))
+	}
+
+	teamRatingsByLeague := make(map[string][]TeamRatingResult)
+
+	// Process each league
+	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
+	for _, league := range leagues {
+		leagueEvents, exists := eventsByLeague[league]
+		if !exists {
+			if debug {
+				fmt.Printf("⚠️  No events found for league %s\n", league)
+			}
+			continue
+		}
+
+		if debug {
+			fmt.Printf("\n🏈 Processing %s (%d events)...\n", league, len(leagueEvents))
+		}
+
+		// Set up MLE options with debug flag
+		options := outrightsmle.MLEOptions{
+			MaxIter:      maxiter,
+			Tolerance:    tolerance,
+			LearningRate: 0.1,
+			TimeDecay:    0.78,
+			Debug:        debug,
+		}
+
+		// Create MLE request
+		request := outrightsmle.MLERequest{
+			League:         league,
+			Season:         latestSeason,
+			HistoricalData: leagueEvents,
+			PromotedTeams:  promotedTeams, // Pass promoted teams for enhanced learning
+			Options:        options,
+		}
+
+		// Run MLE optimization
+		result, err := outrightsmle.OptimizeRatings(request)
+		if err != nil {
+			if debug {
+				fmt.Printf("❌ MLE optimization failed for %s: %v\n", league, err)
+			}
+			continue
+		}
+
+		if debug {
+			fmt.Printf("✅ %s optimization complete: %d iterations, converged=%v\n", 
+				league, result.MLEParams.Iterations, result.MLEParams.Converged)
+		}
+
+		// Filter ratings for latest season teams only
+		var latestSeasonRatings []TeamRatingResult
+		latestSeasonTeams := getTeamsInSeason(leagueEvents, latestSeason)
+
+		for _, rating := range result.TeamRatings {
+			if _, inLatestSeason := latestSeasonTeams[rating.Team]; inLatestSeason {
+				latestSeasonRatings = append(latestSeasonRatings, TeamRatingResult{
+					League:     league,
+					Season:     latestSeason,
+					TeamRating: rating,
+				})
+			}
+		}
+
+		teamRatingsByLeague[league] = latestSeasonRatings
+	}
+
+	return teamRatingsByLeague, nil
+}
+
+// findLatestSeason finds the most recent season in the dataset
+func findLatestSeason(events []outrightsmle.MatchResult) string {
+	latestSeason := ""
+	for _, event := range events {
+		if event.Season > latestSeason {
+			latestSeason = event.Season
+		}
+	}
+	return latestSeason
+}
+
+// groupEventsByLeague separates events by league
+func groupEventsByLeague(events []outrightsmle.MatchResult) map[string][]outrightsmle.MatchResult {
+	grouped := make(map[string][]outrightsmle.MatchResult)
+	for _, event := range events {
+		grouped[event.League] = append(grouped[event.League], event)
+	}
+	return grouped
+}
+
+// detectPromotedTeams identifies teams that have changed leagues historically
+func detectPromotedTeams(events []outrightsmle.MatchResult, debug bool) map[string]bool {
+	// Build team league history: team -> season -> league
+	teamLeagueHistory := make(map[string]map[string]string)
+	
+	for _, event := range events {
+		// Initialize if needed
+		if teamLeagueHistory[event.HomeTeam] == nil {
+			teamLeagueHistory[event.HomeTeam] = make(map[string]string)
+		}
+		if teamLeagueHistory[event.AwayTeam] == nil {
+			teamLeagueHistory[event.AwayTeam] = make(map[string]string)
+		}
+		
+		// Record league for this season
+		teamLeagueHistory[event.HomeTeam][event.Season] = event.League
+		teamLeagueHistory[event.AwayTeam][event.Season] = event.League
+	}
+
+	// Find all unique seasons and sort them
+	seasonsSet := make(map[string]bool)
+	for _, event := range events {
+		seasonsSet[event.Season] = true
+	}
+	
+	var seasons []string
+	for season := range seasonsSet {
+		seasons = append(seasons, season)
+	}
+	sort.Strings(seasons)
+
+	promotedTeams := make(map[string]bool)
+	
+	if debug {
+		fmt.Printf("🔄 Detecting teams with league changes across %d seasons...\n", len(seasons))
+	}
+
+	// Check for league changes between consecutive seasons
+	for team, seasonHistory := range teamLeagueHistory {
+		var changes []string
+		hasChanged := false
+		
+		for i := 0; i < len(seasons)-1; i++ {
+			currentLeague := seasonHistory[seasons[i]]
+			nextLeague := seasonHistory[seasons[i+1]]
+			
+			// Both seasons must have data
+			if currentLeague != "" && nextLeague != "" && currentLeague != nextLeague {
+				hasChanged = true
+				direction := "📈" // promotion (lower league number)
+				if nextLeague > currentLeague {
+					direction = "📉" // relegation (higher league number)
+				}
+				changes = append(changes, fmt.Sprintf("%s %s→%s", direction, seasons[i], seasons[i+1]))
+			}
+		}
+		
+		if hasChanged {
+			promotedTeams[team] = true
+			if debug {
+				fmt.Printf("  🔄 %s: %s\n", team, strings.Join(changes, ", "))
+			}
+		}
+	}
+	
+	return promotedTeams
+}
+
+// getTeamsInSeason returns teams that played in a specific season for a league
+func getTeamsInSeason(events []outrightsmle.MatchResult, season string) map[string]bool {
+	teams := make(map[string]bool)
+	for _, event := range events {
+		if event.Season == season {
+			teams[event.HomeTeam] = true
+			teams[event.AwayTeam] = true
+		}
+	}
+	return teams
+}
+
+// displayTeamRatingsByLeague prints team ratings grouped by league
+func displayTeamRatingsByLeague(teamRatingsByLeague map[string][]TeamRatingResult, verbose bool) {
+	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
+	
+	for _, league := range leagues {
+		ratings, exists := teamRatingsByLeague[league]
+		if !exists || len(ratings) == 0 {
+			continue
+		}
+
+		// Sort teams by attack rating (descending)
+		sort.Slice(ratings, func(i, j int) bool {
+			return ratings[i].TeamRating.AttackRating > ratings[j].TeamRating.AttackRating
+		})
+
+		fmt.Printf("\n🏆 %s (%d teams):\n", league, len(ratings))
+		fmt.Printf("%-20s %8s %8s %8s %8s\n", "Team", "Attack", "Defense", "λ_Home", "λ_Away")
+		fmt.Printf("%-20s %8s %8s %8s %8s\n", "----", "------", "-------", "------", "------")
+
+		for _, rating := range ratings {
+			fmt.Printf("%-20s %8.3f %8.3f %8.2f %8.2f\n",
+				rating.TeamRating.Team,
+				rating.TeamRating.AttackRating,
+				rating.TeamRating.DefenseRating,
+				math.Exp(rating.TeamRating.LambdaHome),
+				math.Exp(rating.TeamRating.LambdaAway),
+			)
+		}
+	}
+}
+
+// getMapKeys returns the keys of a string map
+func getMapKeys(m map[string][]outrightsmle.MatchResult) []string {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
