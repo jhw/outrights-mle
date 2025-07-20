@@ -17,9 +17,6 @@ func calculateLeagueSeasonPointsWithSim(teamNames []string, params MLEParams, si
 	allEvents []MatchResult, league string, currentSeason string) *SeasonPointsResult {
 	
 	// Use SimParams for simulation paths
-	if simParams == nil {
-		simParams = DefaultSimParams()
-	}
 	nPaths := simParams.SimulationPaths
 	
 	// Filter events for this league and current season

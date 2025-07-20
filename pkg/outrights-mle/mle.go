@@ -52,11 +52,8 @@ func findLatestSeason(matches []MatchResult) string {
 
 // Optimize runs the MLE optimization algorithm
 func (s *MLESolver) Optimize() (*MLEParams, error) {
-	// Get simulation parameters (use defaults if not provided)
+	// Get simulation parameters
 	simParams := s.options.SimParams
-	if simParams == nil {
-		simParams = DefaultSimParams()
-	}
 
 	// Initialize parameters
 	s.params = &MLEParams{
@@ -276,11 +273,8 @@ func (s *MLESolver) DixonColesAdjustment(homeGoals, awayGoals int, rho float64) 
 
 // getTimeWeight returns temporal weighting for matches
 func (s *MLESolver) getTimeWeight(season string) float64 {
-	// Get simulation parameters (use defaults if not provided)
+	// Get simulation parameters
 	simParams := s.options.SimParams
-	if simParams == nil {
-		simParams = DefaultSimParams()
-	}
 
 	// Calculate years since latest season in the data
 	latestYear := convertSeasonToYear(s.latestSeason)
@@ -294,11 +288,8 @@ func (s *MLESolver) getTimeWeight(season string) float64 {
 
 // getAdaptiveLearningRate returns enhanced learning rate for teams with league changes  
 func (s *MLESolver) getAdaptiveLearningRate(team string, baseLearningRate float64, match MatchResult) float64 {
-	// Get simulation parameters (use defaults if not provided)
+	// Get simulation parameters
 	simParams := s.options.SimParams
-	if simParams == nil {
-		simParams = DefaultSimParams()
-	}
 
 	// Apply enhanced learning for promoted/relegated teams
 	if s.promotedTeams[team] {
@@ -338,9 +329,6 @@ func (s *MLESolver) calculateExpectedMatchPoints(homeTeam, awayTeam string) (flo
 	
 	// Get simulation parameters for goal simulation bound
 	simParams := s.options.SimParams
-	if simParams == nil {
-		simParams = DefaultSimParams()
-	}
 
 	// Sum probabilities for all possible score combinations
 	for homeGoals := 0; homeGoals <= simParams.GoalSimulationBound; homeGoals++ {

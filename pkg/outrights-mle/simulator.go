@@ -89,9 +89,6 @@ func (sp *SimPoints) simulate(homeTeam, awayTeam string, solver *MLESolver) {
 		
 		// Add goal difference effect using SimParams
 		simParams := solver.options.SimParams
-		if simParams == nil {
-			simParams = DefaultSimParams()
-		}
 		
 		homeGD := float64(homeGoals - awayGoals)
 		awayGD := float64(awayGoals - homeGoals)
