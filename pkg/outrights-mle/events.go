@@ -29,7 +29,8 @@ func NewEventProcessor(events []MatchResult, debug bool) *EventProcessor {
 
 // LoadLeagueGroups loads team configurations from core-data/teams files
 func (ep *EventProcessor) LoadLeagueGroups() error {
-	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
+	// Extract leagues dynamically from events data
+	leagues := ExtractLeagues(ep.events)
 	leagueGroups := make(map[string][]string)
 	
 	for _, league := range leagues {
@@ -213,8 +214,7 @@ func GetCurrentTeams(leagueGroups map[string][]string, eventsByLeague map[string
 	}
 	
 	// Otherwise, extract teams from latest season for each league
-	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
-	for _, league := range leagues {
+	for league := range eventsByLeague {
 		if leagueEvents, exists := eventsByLeague[league]; exists {
 			teamsMap := GetTeamsInSeason(leagueEvents, latestSeason)
 			

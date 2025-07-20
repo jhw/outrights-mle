@@ -481,7 +481,13 @@ func runMLEModel(events []outrightsmle.MatchResult, markets []outrightsmle.Marke
 
 // displayTeamsByLeague prints teams grouped by league
 func displayTeamsByLeague(teamsByLeague map[string][]TeamResult, verbose bool) {
-	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
+	// Get leagues dynamically from the results
+	var leagues []string
+	for league := range teamsByLeague {
+		leagues = append(leagues, league)
+	}
+	// Sort for consistent output order
+	sort.Strings(leagues)
 	
 	for _, league := range leagues {
 		teams, exists := teamsByLeague[league]
@@ -520,7 +526,13 @@ func displayTeamsByLeague(teamsByLeague map[string][]TeamResult, verbose bool) {
 
 // displayMarkTables outputs mark value tables to console, sorted by expected season points
 func displayMarkTables(result *outrightsmle.MultiLeagueResult) {
-	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
+	// Get leagues dynamically from the results
+	var leagues []string
+	for league := range result.Leagues {
+		leagues = append(leagues, league)
+	}
+	// Sort for consistent output order
+	sort.Strings(leagues)
 	
 	for _, league := range leagues {
 		teams, hasTeams := result.Leagues[league]

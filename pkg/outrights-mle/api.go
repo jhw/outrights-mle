@@ -188,8 +188,8 @@ func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*
 			mlResult.MLEParams.Iterations, mlResult.MLEParams.Converged)
 	}
 	
-	// Now filter and organize results by league
-	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
+	// Now filter and organize results by league - use leagues found in events
+	leagues := ExtractLeagues(events)
 	for _, league := range leagues {
 		if options.Debug {
 			fmt.Printf("\n📊 Filtering results for %s...\n", league)
