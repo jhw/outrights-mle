@@ -32,7 +32,7 @@ type SimParams struct {
 	
 	// Learning parameters
 	BaseLearningRate      float64 `json:"base_learning_rate"`      // Base learning rate for gradient ascent (default: 0.001)
-	PromotedLearningRate  float64 `json:"promoted_learning_rate"`  // Historical season multiplier for promoted teams (default: 2.0)
+	LeagueChangeLearningRate float64 `json:"league_change_learning_rate"` // Historical season multiplier for teams that changed leagues (default: 2.0)
 	
 	// Time weighting parameters
 	TimeDecayBase         float64 `json:"time_decay_base"`         // Time decay base factor (default: 0.85)
@@ -66,7 +66,7 @@ type MLEResult struct {
 // MLERequest contains all parameters needed for MLE optimization
 type MLERequest struct {
 	HistoricalData []MatchResult     `json:"historical_data"`
-	PromotedTeams  map[string]bool   `json:"promoted_teams"`  // Teams with historical league changes
+	LeagueChangeTeams map[string]bool `json:"league_change_teams"` // Teams that changed leagues before season start
 	LeagueGroups   map[string][]string `json:"league_groups,omitempty"` // Optional: league -> teams mapping
 	Options        MLEOptions        `json:"options"`
 }
@@ -111,8 +111,8 @@ func DefaultSimParams() *SimParams {
 		HomeAdvantage:         0.3,   // Home team advantage
 		
 		// Learning parameters
-		BaseLearningRate:     0.001,  // Base learning rate for gradient ascent
-		PromotedLearningRate: 2.0,    // Historical season multiplier for promoted teams
+		BaseLearningRate:         0.001,  // Base learning rate for gradient ascent
+		LeagueChangeLearningRate: 2.0,    // Historical season multiplier for teams that changed leagues
 		
 		// Time weighting parameters
 		TimeDecayBase:        0.85,   // Time decay base factor

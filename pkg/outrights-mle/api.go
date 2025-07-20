@@ -24,7 +24,7 @@ func OptimizeRatings(request MLERequest) (*MLEResult, error) {
 	}
 
 	// Initialize MLE solver with historical data
-	solver := NewMLESolver(request.HistoricalData, request.Options, request.PromotedTeams)
+	solver := NewMLESolver(request.HistoricalData, request.Options, request.LeagueChangeTeams)
 
 	// Run MLE optimization
 	params, err := solver.Optimize()
@@ -126,7 +126,7 @@ func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*
 	// Process events using the events module
 	latestSeason := processor.FindLatestSeason()
 	eventsByLeague := processor.GroupEventsByLeague()
-	promotedTeams := processor.DetectPromotedTeams()
+	leagueChangeTeams := processor.DetectLeagueChangeTeams()
 	
 	// If league groups are specified, set latest season to empty (not using season-based selection)
 	effectiveLatestSeason := latestSeason
@@ -172,7 +172,7 @@ func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*
 	// Create single MLE request for ALL events across ALL leagues  
 	request := MLERequest{
 		HistoricalData: events,
-		PromotedTeams:  promotedTeams,
+		LeagueChangeTeams: leagueChangeTeams,
 		LeagueGroups:   leagueGroups,
 		Options:        options,
 	}

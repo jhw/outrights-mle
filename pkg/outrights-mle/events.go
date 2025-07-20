@@ -115,9 +115,9 @@ func (ep *EventProcessor) GroupEventsByLeague() map[string][]MatchResult {
 	return eventsByLeague
 }
 
-// DetectPromotedTeams finds teams that have changed leagues across seasons
-func (ep *EventProcessor) DetectPromotedTeams() map[string]bool {
-	promotedTeams := make(map[string]bool)
+// DetectLeagueChangeTeams finds teams that have changed leagues across seasons  
+func (ep *EventProcessor) DetectLeagueChangeTeams() map[string]bool {
+	leagueChangeTeams := make(map[string]bool)
 	
 	if ep.debug {
 		fmt.Printf("🔄 Detecting teams with league changes across 10 seasons...\n")
@@ -161,7 +161,7 @@ func (ep *EventProcessor) DetectPromotedTeams() map[string]bool {
 			nextLeague := seasonLeagues[seasons[i+1]]
 			
 			if currentLeague != nextLeague {
-				promotedTeams[team] = true
+				leagueChangeTeams[team] = true
 				// Track the change for debug output
 				if currentLeague < nextLeague {
 					changes = append(changes, fmt.Sprintf("📉 %s→%s", seasons[i], seasons[i+1]))
@@ -181,10 +181,10 @@ func (ep *EventProcessor) DetectPromotedTeams() map[string]bool {
 	}
 	
 	if ep.debug {
-		fmt.Printf("📊 Found %d teams with historical league changes\n", len(promotedTeams))
+		fmt.Printf("📊 Found %d teams with historical league changes\n", len(leagueChangeTeams))
 	}
 	
-	return promotedTeams
+	return leagueChangeTeams
 }
 
 // GetTeamsInSeason returns teams that played in a specific season for given events

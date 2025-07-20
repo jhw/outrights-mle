@@ -10,32 +10,32 @@ type MLESolver struct {
 	matches       []MatchResult
 	options       MLEOptions
 	teamNames     map[string]bool
-	promotedTeams map[string]bool // Teams with historical league changes
+	leagueChangeTeams map[string]bool // Teams that changed leagues before season start
 	params        *MLEParams
 	latestSeason  string          // Dynamically determined latest season
 }
 
 // NewMLESolver creates a new MLE solver instance
-func NewMLESolver(matches []MatchResult, options MLEOptions, promotedTeams map[string]bool) *MLESolver {
+func NewMLESolver(matches []MatchResult, options MLEOptions, leagueChangeTeams map[string]bool) *MLESolver {
 	teamNames := make(map[string]bool)
 	for _, match := range matches {
 		teamNames[match.HomeTeam] = true
 		teamNames[match.AwayTeam] = true
 	}
 
-	if promotedTeams == nil {
-		promotedTeams = make(map[string]bool)
+	if leagueChangeTeams == nil {
+		leagueChangeTeams = make(map[string]bool)
 	}
 
 	// Find latest season dynamically
 	latestSeason := findLatestSeason(matches)
 
 	return &MLESolver{
-		matches:       matches,
-		options:       options,
-		teamNames:     teamNames,
-		promotedTeams: promotedTeams,
-		latestSeason:  latestSeason,
+		matches:           matches,
+		options:           options,
+		teamNames:         teamNames,
+		leagueChangeTeams: leagueChangeTeams,
+		latestSeason:      latestSeason,
 	}
 }
 
@@ -72,8 +72,8 @@ func (s *MLESolver) Optimize() (*MLEParams, error) {
 	if s.options.Debug {
 		fmt.Printf("🔧 Starting MLE optimization for %d teams, %d matches...\n", len(s.teamNames), len(s.matches))
 		fmt.Printf("📅 Latest season detected: %s\n", s.latestSeason)
-		if len(s.promotedTeams) > 0 {
-			fmt.Printf("📈 Enhanced learning enabled for %d teams with league changes\n", len(s.promotedTeams))
+		if len(s.leagueChangeTeams) > 0 {
+			fmt.Printf("📈 Enhanced learning enabled for %d teams with league changes\n", len(s.leagueChangeTeams))
 		}
 	}
 
@@ -291,9 +291,9 @@ func (s *MLESolver) getAdaptiveLearningRate(team string, baseLearningRate float6
 	// Get simulation parameters
 	simParams := s.options.SimParams
 
-	// Apply enhanced learning for promoted/relegated teams (historical data only)
-	if s.promotedTeams[team] {
-		return baseLearningRate * simParams.PromotedLearningRate
+	// Apply enhanced learning for teams that changed leagues (historical data only)
+	if s.leagueChangeTeams[team] {
+		return baseLearningRate * simParams.LeagueChangeLearningRate
 	}
 	return baseLearningRate
 }
