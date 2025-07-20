@@ -44,19 +44,7 @@ func OptimizeRatings(request MLERequest) (*MLEResult, error) {
 		teamRatings = append(teamRatings, rating)
 	}
 
-	// Set default values for cross-league processing
-	league := request.League
-	if league == "" {
-		league = "ALL"
-	}
-	season := request.Season  
-	if season == "" {
-		season = "ALL"
-	}
-	
 	result := &MLEResult{
-		League:           league,
-		Season:           season,
 		TeamRatings:      teamRatings,
 		MLEParams:        *params,
 		ProcessingTime:   time.Since(startTime),

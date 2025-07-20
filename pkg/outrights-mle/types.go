@@ -45,8 +45,6 @@ type MLEOptions struct {
 
 // MLEResult contains the output of MLE optimization
 type MLEResult struct {
-	League           string        `json:"league"`
-	Season           string        `json:"season"`
 	TeamRatings      []TeamRating  `json:"team_ratings"`
 	MLEParams        MLEParams     `json:"mle_params"`
 	ProcessingTime   time.Duration `json:"processing_time"`
@@ -55,8 +53,6 @@ type MLEResult struct {
 
 // MLERequest contains all parameters needed for MLE optimization
 type MLERequest struct {
-	League         string            `json:"league"`
-	Season         string            `json:"season"`
 	HistoricalData []MatchResult     `json:"historical_data"`
 	PromotedTeams  map[string]bool   `json:"promoted_teams"`  // Teams with historical league changes
 	LeagueGroups   map[string][]string `json:"league_groups,omitempty"` // Optional: league -> teams mapping

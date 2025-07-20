@@ -110,8 +110,6 @@ func main() {
 
 	// Create MLE request
 	request := outrightsmle.MLERequest{
-		League:         *league,
-		Season:         *season,
 		HistoricalData: historicalData,
 		Options:        options,
 	}
