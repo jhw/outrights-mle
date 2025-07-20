@@ -293,10 +293,10 @@ func (s *MLESolver) getAdaptiveLearningRate(team string, baseLearningRate float6
 
 	// Apply enhanced learning ONLY for teams in their first season after changing leagues
 	if s.leagueChangeTeams[team] && match.Season == s.latestSeason {
-		// Linear decay from CurrentSeasonStart to CurrentSeasonEnd over their first season in new league
+		// Linear decay from LeagueChangeLearningRate to 1.0 over their first season in new league
 		// Using time weight as proxy for "how far into season"
-		enhancementRange := simParams.CurrentSeasonStart - simParams.CurrentSeasonEnd
-		enhancementFactor := simParams.CurrentSeasonStart - enhancementRange*s.getTimeWeight(s.latestSeason)
+		enhancementRange := simParams.LeagueChangeLearningRate - 1.0
+		enhancementFactor := simParams.LeagueChangeLearningRate - enhancementRange*s.getTimeWeight(s.latestSeason)
 		return baseLearningRate * enhancementFactor
 	}
 	return baseLearningRate

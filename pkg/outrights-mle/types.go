@@ -32,9 +32,7 @@ type SimParams struct {
 	
 	// Learning parameters
 	BaseLearningRate         float64 `json:"base_learning_rate"`         // Base learning rate for gradient ascent (default: 0.001)
-	LeagueChangeLearningRate float64 `json:"league_change_learning_rate"` // Historical season multiplier for teams that changed leagues (default: 2.0)
-	CurrentSeasonStart       float64 `json:"current_season_start"`       // Current season start multiplier for league change teams (default: 2.0)
-	CurrentSeasonEnd         float64 `json:"current_season_end"`         // Current season end multiplier for league change teams (default: 1.0)
+	LeagueChangeLearningRate float64 `json:"league_change_learning_rate"` // Enhancement multiplier for teams that changed leagues (default: 2.0)
 	
 	// Time weighting parameters
 	TimeDecayBase         float64 `json:"time_decay_base"`         // Time decay base factor (default: 0.85)
@@ -114,9 +112,7 @@ func DefaultSimParams() *SimParams {
 		
 		// Learning parameters
 		BaseLearningRate:         0.001,  // Base learning rate for gradient ascent
-		LeagueChangeLearningRate: 2.0,    // Historical season multiplier for teams that changed leagues
-		CurrentSeasonStart:       2.0,    // Current season start multiplier for league change teams
-		CurrentSeasonEnd:         1.0,    // Current season end multiplier for league change teams
+		LeagueChangeLearningRate: 2.0,    // Enhancement multiplier for teams that changed leagues
 		
 		// Time weighting parameters
 		TimeDecayBase:        0.85,   // Time decay base factor
