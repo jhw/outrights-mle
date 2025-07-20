@@ -283,32 +283,14 @@ func (s *MLESolver) getTimeWeight(season string) float64 {
 	}
 
 	// Calculate years since latest season in the data
-	latestYear := s.convertSeasonToYear(s.latestSeason)
-	seasonYear := s.convertSeasonToYear(season)
+	latestYear := convertSeasonToYear(s.latestSeason)
+	seasonYear := convertSeasonToYear(season)
 	yearsAgo := float64(latestYear - seasonYear)
 	
 	// Apply exponential decay with configurable base and power
 	return math.Pow(simParams.TimeDecayBase, yearsAgo*simParams.TimeDecayPower)
 }
 
-// convertSeasonToYear converts season string to starting year
-func (s *MLESolver) convertSeasonToYear(season string) int {
-	// Convert season string to starting year (e.g., "2425" -> 2024, "2324" -> 2023)
-	if len(season) != 4 {
-		return 2014 // Default to oldest season
-	}
-	
-	// Parse first two digits and add 2000
-	year := 0
-	if season[0] >= '0' && season[0] <= '9' {
-		year += int(season[0]-'0') * 10
-	}
-	if season[1] >= '0' && season[1] <= '9' {
-		year += int(season[1] - '0')
-	}
-	
-	return 2000 + year
-}
 
 // getAdaptiveLearningRate returns enhanced learning rate for teams with league changes  
 func (s *MLESolver) getAdaptiveLearningRate(team string, baseLearningRate float64, match MatchResult) float64 {

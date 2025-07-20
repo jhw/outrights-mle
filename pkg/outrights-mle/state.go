@@ -117,31 +117,23 @@ func parseEventName(eventName string) (string, string) {
 	return parts[0], parts[1]
 }
 
-// convertMatchResultsToEvents converts MatchResult to Event format
-func convertMatchResultsToEvents(matches []MatchResult, season string) []Event {
-	var events []Event
+// getTeamNamesFromEvents extracts unique team names from events (adapted from go-outrights)
+func getTeamNamesFromEvents(events []Event) []string {
+	teamSet := make(map[string]bool)
 	
-	for _, match := range matches {
-		// Only include matches from the specified season
-		if season != "" && match.Season != season {
-			continue
+	for _, event := range events {
+		homeTeam, awayTeam := parseEventName(event.Name)
+		if homeTeam != "" && awayTeam != "" {
+			teamSet[homeTeam] = true
+			teamSet[awayTeam] = true
 		}
-		
-		event := Event{
-			Name: match.HomeTeam + " vs " + match.AwayTeam,
-			Date: match.Date,
-			Score: []int{match.HomeGoals, match.AwayGoals},
-		}
-		events = append(events, event)
 	}
 	
-	return events
-}
-
-// getRounds determines number of rounds based on league (SCO=2, others=1)
-func getRounds(league string) int {
-	if strings.HasPrefix(league, "SCO") {
-		return 2
+	teamNames := make([]string, 0, len(teamSet))
+	for name := range teamSet {
+		teamNames = append(teamNames, name)
 	}
-	return 1
+	
+	sort.Strings(teamNames)
+	return teamNames
 }

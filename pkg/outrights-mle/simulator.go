@@ -34,28 +34,6 @@ func newSimPoints(teamNames []string, nPaths int) *SimPoints {
 	return sp
 }
 
-// newSimPointsFromLeagueTable initializes SimPoints with current league table points (adapted from go-outrights)
-func newSimPointsFromLeagueTable(leagueTable []Team, nPaths int, goalDifferenceEffect float64) *SimPoints {
-	sp := &SimPoints{
-		NPaths:    nPaths,
-		TeamNames: make([]string, len(leagueTable)),
-		Points:    make([][]float64, len(leagueTable)),
-	}
-	
-	for i, team := range leagueTable {
-		sp.TeamNames[i] = team.Name
-		sp.Points[i] = make([]float64, nPaths)
-		
-		// Initialize with current points plus goal difference adjustments
-		pointsWithAdjustments := float64(team.Points) + goalDifferenceEffect*float64(team.GoalDifference)
-		
-		for j := 0; j < nPaths; j++ {
-			sp.Points[i][j] = pointsWithAdjustments
-		}
-	}
-	
-	return sp
-}
 
 func (sp *SimPoints) getTeamIndex(teamName string) int {
 	for i, name := range sp.TeamNames {
