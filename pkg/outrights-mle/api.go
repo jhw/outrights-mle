@@ -121,9 +121,18 @@ func RunMLESolver(events []MatchResult, options MLEOptions) (*MultiLeagueResult,
 	eventsByLeague := processor.GroupEventsByLeague()
 	promotedTeams := processor.DetectPromotedTeams()
 	
+	// If league groups are specified, set latest season to empty (not using season-based selection)
+	effectiveLatestSeason := latestSeason
+	if len(leagueGroups) > 0 {
+		effectiveLatestSeason = ""
+		if options.Debug {
+			fmt.Printf("🎯 Using league groups - latest season set to empty (not using season-based team selection)\n")
+		}
+	}
+	
 	result := &MultiLeagueResult{
 		Leagues:        make(map[string][]TeamRating),
-		LatestSeason:   latestSeason,
+		LatestSeason:   effectiveLatestSeason,
 		TotalMatches:   len(events),
 		ProcessingTime: time.Since(startTime),
 	}

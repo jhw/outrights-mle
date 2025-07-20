@@ -199,6 +199,40 @@ func GetTeamsInSeason(events []MatchResult, season string) map[string]bool {
 	return teams
 }
 
+// GetCurrentTeams returns league groups if specified, otherwise teams from latest season for all leagues
+// Returns in same format as league groups: map[league][]string
+func GetCurrentTeams(leagueGroups map[string][]string, eventsByLeague map[string][]MatchResult, latestSeason string) map[string][]string {
+	currentTeams := make(map[string][]string)
+	
+	// If league groups are specified, use them directly
+	if len(leagueGroups) > 0 {
+		for league, teams := range leagueGroups {
+			currentTeams[league] = teams
+		}
+		return currentTeams
+	}
+	
+	// Otherwise, extract teams from latest season for each league
+	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
+	for _, league := range leagues {
+		if leagueEvents, exists := eventsByLeague[league]; exists {
+			teamsMap := GetTeamsInSeason(leagueEvents, latestSeason)
+			
+			// Convert map to slice
+			var teams []string
+			for team := range teamsMap {
+				teams = append(teams, team)
+			}
+			
+			if len(teams) > 0 {
+				currentTeams[league] = teams
+			}
+		}
+	}
+	
+	return currentTeams
+}
+
 // ExtractTeams gets unique team names from match data
 func ExtractTeams(matches []MatchResult) []string {
 	teamSet := make(map[string]bool)
