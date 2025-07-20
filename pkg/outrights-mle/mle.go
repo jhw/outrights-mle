@@ -12,6 +12,7 @@ type MLESolver struct {
 	teamNames     map[string]bool
 	promotedTeams map[string]bool // Teams with historical league changes
 	params        *MLEParams
+	latestSeason  string          // Dynamically determined latest season
 }
 
 // NewMLESolver creates a new MLE solver instance
@@ -26,12 +27,27 @@ func NewMLESolver(matches []MatchResult, options MLEOptions, promotedTeams map[s
 		promotedTeams = make(map[string]bool)
 	}
 
+	// Find latest season dynamically
+	latestSeason := findLatestSeason(matches)
+
 	return &MLESolver{
 		matches:       matches,
 		options:       options,
 		teamNames:     teamNames,
 		promotedTeams: promotedTeams,
+		latestSeason:  latestSeason,
 	}
+}
+
+// findLatestSeason determines the latest season from match data
+func findLatestSeason(matches []MatchResult) string {
+	latestSeason := ""
+	for _, match := range matches {
+		if match.Season > latestSeason {
+			latestSeason = match.Season
+		}
+	}
+	return latestSeason
 }
 
 // Optimize runs the MLE optimization algorithm
@@ -52,6 +68,7 @@ func (s *MLESolver) Optimize() (*MLEParams, error) {
 
 	if s.options.Debug {
 		fmt.Printf("🔧 Starting MLE optimization for %d teams, %d matches...\n", len(s.teamNames), len(s.matches))
+		fmt.Printf("📅 Latest season detected: %s\n", s.latestSeason)
 		if len(s.promotedTeams) > 0 {
 			fmt.Printf("📈 Enhanced learning enabled for %d teams with league changes\n", len(s.promotedTeams))
 		}
@@ -253,10 +270,10 @@ func (s *MLESolver) DixonColesAdjustment(homeGoals, awayGoals int, rho float64) 
 
 // getTimeWeight returns temporal weighting for matches
 func (s *MLESolver) getTimeWeight(season string) float64 {
-	// Calculate years since current season (2024-25)
-	currentYear := 2024
+	// Calculate years since latest season in the data
+	latestYear := s.convertSeasonToYear(s.latestSeason)
 	seasonYear := s.convertSeasonToYear(season)
-	yearsAgo := float64(currentYear - seasonYear)
+	yearsAgo := float64(latestYear - seasonYear)
 	
 	// Apply exponential decay with power of 1.5
 	// 0 years ago (current): 1.0
@@ -286,14 +303,14 @@ func (s *MLESolver) convertSeasonToYear(season string) int {
 
 // getAdaptiveLearningRate returns enhanced learning rate for teams with league changes  
 func (s *MLESolver) getAdaptiveLearningRate(team string, baseLearningRate float64, match MatchResult) float64 {
-	// Copy the exact gist implementation
+	// Copy the exact gist implementation with dynamic latest season
 	if s.promotedTeams[team] {
-		// Decay the enhancement over the current season (2425)
+		// Decay the enhancement over the current (latest) season
 		// Start with 3x rate, decay to 1x rate over the season
-		if match.Season == "2425" {
+		if match.Season == s.latestSeason {
 			// Enhanced rate decays from 3.0 to 1.0 over current season
 			// Using time weight as proxy for "how far into season"
-			enhancementFactor := 3.0 - 2.0*s.getTimeWeight("2425") // 3.0 → 1.0
+			enhancementFactor := 3.0 - 2.0*s.getTimeWeight(s.latestSeason) // 3.0 → 1.0
 			return baseLearningRate * enhancementFactor
 		} else {
 			// For historical seasons, use moderate 2x enhancement
