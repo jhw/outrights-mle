@@ -13,15 +13,6 @@ type MatchResult struct {
 	AwayGoals int    `json:"away_goals"`
 }
 
-// TeamRating represents attack and defense ratings for a team
-type TeamRating struct {
-	Team                 string  `json:"team"`
-	AttackRating         float64 `json:"attack_rating"`
-	DefenseRating        float64 `json:"defense_rating"`
-	LambdaHome           float64 `json:"lambda_home"`           // Expected goals at home
-	LambdaAway           float64 `json:"lambda_away"`           // Expected goals away
-	ExpectedSeasonPoints float64 `json:"expected_season_points"` // Expected points over full season
-}
 
 // MLEParams holds the Maximum Likelihood Estimation parameters
 type MLEParams struct {
@@ -68,7 +59,7 @@ type MLEOptions struct {
 
 // MLEResult contains the output of MLE optimization
 type MLEResult struct {
-	TeamRatings      []TeamRating  `json:"team_ratings"`
+	Teams            []Team        `json:"teams"`
 	MLEParams        MLEParams     `json:"mle_params"`
 	ProcessingTime   time.Duration `json:"processing_time"`
 	MatchesProcessed int           `json:"matches_processed"`
@@ -80,6 +71,26 @@ type MLERequest struct {
 	PromotedTeams  map[string]bool   `json:"promoted_teams"`  // Teams with historical league changes
 	LeagueGroups   map[string][]string `json:"league_groups,omitempty"` // Optional: league -> teams mapping
 	Options        MLEOptions        `json:"options"`
+}
+
+// Team represents a team with all related parameters
+type Team struct {
+	Name                 string  `json:"name"`
+	Points               int     `json:"points"`
+	GoalDifference       int     `json:"goal_difference"`
+	Played               int     `json:"played"`
+	AttackRating         float64 `json:"attack_rating"`
+	DefenseRating        float64 `json:"defense_rating"`
+	LambdaHome           float64 `json:"lambda_home"`
+	LambdaAway           float64 `json:"lambda_away"`
+	ExpectedSeasonPoints float64 `json:"expected_season_points"`
+}
+
+// Event represents a match event (adapted from go-outrights)
+type Event struct {
+	Name  string `json:"name"`
+	Date  string `json:"date"`
+	Score []int  `json:"score,omitempty"`
 }
 
 

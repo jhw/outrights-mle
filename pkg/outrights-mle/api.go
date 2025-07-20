@@ -31,21 +31,25 @@ func OptimizeRatings(request MLERequest) (*MLEResult, error) {
 		return nil, fmt.Errorf("MLE optimization failed: %w", err)
 	}
 
-	// Extract team ratings
-	teamRatings := make([]TeamRating, 0, len(params.AttackRatings))
-	for team := range params.AttackRatings {
-		rating := TeamRating{
-			Team:          team,
-			AttackRating:  params.AttackRatings[team],
-			DefenseRating: params.DefenseRatings[team],
-			LambdaHome:    math.Exp(params.AttackRatings[team] + params.HomeAdvantage),  // attack + 0.3
-			LambdaAway:    math.Exp(params.AttackRatings[team]),                        // just attack
+	// Extract team ratings into Team objects (with empty league table fields)
+	teams := make([]Team, 0, len(params.AttackRatings))
+	for teamName := range params.AttackRatings {
+		team := Team{
+			Name:                 teamName,
+			Points:               0,  // No league table data at this level
+			GoalDifference:       0,  // No league table data at this level  
+			Played:               0,  // No league table data at this level
+			AttackRating:         params.AttackRatings[teamName],
+			DefenseRating:        params.DefenseRatings[teamName],
+			LambdaHome:           math.Exp(params.AttackRatings[teamName] + params.HomeAdvantage),  // attack + home advantage
+			LambdaAway:           math.Exp(params.AttackRatings[teamName]),                         // just attack
+			ExpectedSeasonPoints: 0,  // Will be calculated later at league level
 		}
-		teamRatings = append(teamRatings, rating)
+		teams = append(teams, team)
 	}
 
 	result := &MLEResult{
-		TeamRatings:      teamRatings,
+		Teams:            teams,
 		MLEParams:        *params,
 		ProcessingTime:   time.Since(startTime),
 		MatchesProcessed: len(request.HistoricalData),
@@ -78,10 +82,10 @@ func validateRequest(request MLERequest) error {
 
 // MultiLeagueResult holds results for multiple leagues
 type MultiLeagueResult struct {
-	Leagues       map[string][]TeamRating `json:"leagues"`        // league -> team ratings
-	LatestSeason  string                  `json:"latest_season"`  
-	TotalMatches  int                     `json:"total_matches"`
-	ProcessingTime time.Duration          `json:"processing_time"`
+	Leagues       map[string][]Team `json:"leagues"`        // league -> teams with all data
+	LatestSeason  string            `json:"latest_season"`  
+	TotalMatches  int               `json:"total_matches"`
+	ProcessingTime time.Duration    `json:"processing_time"`
 }
 
 // RunMLESolver runs MLE optimization across all leagues and returns organized results
@@ -131,7 +135,7 @@ func RunMLESolver(events []MatchResult, options MLEOptions) (*MultiLeagueResult,
 	}
 	
 	result := &MultiLeagueResult{
-		Leagues:        make(map[string][]TeamRating),
+		Leagues:        make(map[string][]Team),
 		LatestSeason:   effectiveLatestSeason,
 		TotalMatches:   len(events),
 		ProcessingTime: time.Since(startTime),
@@ -172,7 +176,6 @@ func RunMLESolver(events []MatchResult, options MLEOptions) (*MultiLeagueResult,
 			fmt.Printf("\n📊 Filtering results for %s...\n", league)
 		}
 		
-		var filteredRatings []TeamRating
 		var targetTeams map[string]bool
 		
 		// Use league groups if available, otherwise fall back to latest season teams
@@ -195,48 +198,99 @@ func RunMLESolver(events []MatchResult, options MLEOptions) (*MultiLeagueResult,
 			}
 		}
 		
-		// Filter ratings for this league and calculate expected season points
+		// Filter teams for this league and collect team names
 		var leagueTeams []string
-		for _, rating := range mlResult.TeamRatings {
-			if _, isTargetTeam := targetTeams[rating.Team]; isTargetTeam {
-				filteredRatings = append(filteredRatings, rating)
-				leagueTeams = append(leagueTeams, rating.Team)
+		teamDataMap := make(map[string]Team)
+		for _, team := range mlResult.Teams {
+			if _, isTargetTeam := targetTeams[team.Name]; isTargetTeam {
+				leagueTeams = append(leagueTeams, team.Name)
+				teamDataMap[team.Name] = team
 			}
 		}
 		
 		// Calculate expected season points for teams in this league
-		expectedSeasonPoints := calculateLeagueSeasonPoints(leagueTeams, mlResult.MLEParams, options.SimParams)
+		expectedSeasonPoints := calculateLeagueSeasonPoints(leagueTeams, mlResult.MLEParams, options.SimParams, 
+			events, league, effectiveLatestSeason)
 		
-		// Update ratings with expected season points
-		for i := range filteredRatings {
-			if points, exists := expectedSeasonPoints[filteredRatings[i].Team]; exists {
-				filteredRatings[i].ExpectedSeasonPoints = points
+		// Get current season matches for this league to build proper league table
+		var leagueEvents []MatchResult
+		for _, event := range events {
+			if event.League == league && event.Season == effectiveLatestSeason {
+				leagueEvents = append(leagueEvents, event)
+			}
+		}
+		
+		// Convert to Event format and calculate league table
+		currentSeasonEvents := convertMatchResultsToEvents(leagueEvents, effectiveLatestSeason)
+		leagueTable := calcLeagueTable(leagueTeams, currentSeasonEvents)
+		
+		// Create unified Team objects with all data
+		var teams []Team
+		for _, tableTeam := range leagueTable {
+			if teamData, exists := teamDataMap[tableTeam.Name]; exists {
+				team := Team{
+					Name:           tableTeam.Name,
+					Points:         tableTeam.Points,
+					GoalDifference: tableTeam.GoalDifference,
+					Played:         tableTeam.Played,
+					AttackRating:   teamData.AttackRating,
+					DefenseRating:  teamData.DefenseRating,
+					LambdaHome:     teamData.LambdaHome,
+					LambdaAway:     teamData.LambdaAway,
+				}
+				
+				// Add expected season points
+				if points, exists := expectedSeasonPoints[team.Name]; exists {
+					team.ExpectedSeasonPoints = points
+				}
+				
+				teams = append(teams, team)
 			}
 		}
 		
 		// Sort by expected season points (descending) for league table order
-		sort.Slice(filteredRatings, func(i, j int) bool {
-			return filteredRatings[i].ExpectedSeasonPoints > filteredRatings[j].ExpectedSeasonPoints
+		sort.Slice(teams, func(i, j int) bool {
+			return teams[i].ExpectedSeasonPoints > teams[j].ExpectedSeasonPoints
 		})
 		
-		result.Leagues[league] = filteredRatings
+		result.Leagues[league] = teams
 	}
 	
 	result.ProcessingTime = time.Since(startTime)
 	return result, nil
 }
 
-// calculateLeagueSeasonPoints calculates expected points for a full season using Monte Carlo simulation
-// Each team plays every other team both home and away - matches gist simulation exactly
-func calculateLeagueSeasonPoints(teams []string, params MLEParams, simParams *SimParams) map[string]float64 {
+// calculateLeagueSeasonPoints calculates expected points using realistic fixture approach
+// Looks up current season matches, generates league table, calculates remaining fixtures, simulates them
+func calculateLeagueSeasonPoints(teamNames []string, params MLEParams, simParams *SimParams, 
+	allEvents []MatchResult, league string, currentSeason string) map[string]float64 {
+	
 	// Use SimParams for simulation paths
 	if simParams == nil {
 		simParams = DefaultSimParams()
 	}
 	nPaths := simParams.SimulationPaths
 	
-	// Initialize simulation points tracker
-	simPoints := newSimPoints(teams, nPaths)
+	// Filter events for this league and current season
+	var leagueEvents []MatchResult
+	for _, event := range allEvents {
+		if event.League == league && event.Season == currentSeason {
+			leagueEvents = append(leagueEvents, event)
+		}
+	}
+	
+	// Convert to Event format for compatibility with go-outrights functions
+	events := convertMatchResultsToEvents(leagueEvents, currentSeason)
+	
+	// Calculate current league table from existing matches
+	leagueTable := calcLeagueTable(teamNames, events)
+	
+	// Calculate remaining fixtures based on what's been played
+	rounds := getRounds(league)
+	remainingFixtures := calcRemainingFixtures(teamNames, events, rounds)
+	
+	// Initialize simulation points tracker with current league table
+	simPoints := newSimPointsFromLeagueTable(leagueTable, nPaths, simParams.GoalDifferenceEffect)
 	
 	// Create a temporary solver for simulation with SimParams
 	solver := &MLESolver{
@@ -244,25 +298,22 @@ func calculateLeagueSeasonPoints(teams []string, params MLEParams, simParams *Si
 		options: MLEOptions{SimParams: simParams},
 	}
 	
-	// Simulate full season: each team plays every other team home and away
-	matchCount := 0
-	for i, homeTeam := range teams {
-		for j, awayTeam := range teams {
-			if i != j { // Team doesn't play itself
-				simPoints.simulate(homeTeam, awayTeam, solver)
-				matchCount++
-			}
+	// Simulate remaining fixtures and add to current points
+	for _, fixtureName := range remainingFixtures {
+		homeTeam, awayTeam := parseEventName(fixtureName)
+		if homeTeam != "" && awayTeam != "" {
+			simPoints.simulate(homeTeam, awayTeam, solver)
 		}
 	}
 	
-	// Calculate expected points from simulation (average across all paths)
+	// Calculate expected total season points (current + simulated remaining)
 	expectedPoints := make(map[string]float64)
-	for i, teamName := range teams {
+	for i, team := range leagueTable {
 		total := 0.0
 		for path := 0; path < nPaths; path++ {
 			total += simPoints.Points[i][path]
 		}
-		expectedPoints[teamName] = total / float64(nPaths)
+		expectedPoints[team.Name] = total / float64(nPaths)
 	}
 	
 	return expectedPoints

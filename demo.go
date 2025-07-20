@@ -49,14 +49,14 @@ func main() {
 			log.Fatalf("Failed to load events data: %v", err)
 		}
 
-		// Run model and get team ratings by league
-		teamRatingsByLeague, err := runMLEModel(events, *debug, *maxiter, *tolerance)
+		// Run model and get teams by league
+		teamsByLeague, err := runMLEModel(events, *debug, *maxiter, *tolerance)
 		if err != nil {
 			log.Fatalf("MLE model failed: %v", err)
 		}
 
 		// Display results for latest season
-		displayTeamRatingsByLeague(teamRatingsByLeague, *verbose)
+		displayTeamsByLeague(teamsByLeague, *verbose)
 		return
 	}
 
@@ -133,25 +133,30 @@ func main() {
 	fmt.Printf("✓ Home advantage: %.3f\n", result.MLEParams.HomeAdvantage)
 
 	// Sort teams by expected season points for league table order
-	sort.Slice(result.TeamRatings, func(i, j int) bool {
-		return result.TeamRatings[i].ExpectedSeasonPoints > result.TeamRatings[j].ExpectedSeasonPoints
+	sort.Slice(result.Teams, func(i, j int) bool {
+		return result.Teams[i].ExpectedSeasonPoints > result.Teams[j].ExpectedSeasonPoints
 	})
 
 	// Display results
 	fmt.Printf("\n📊 Team Ratings\n")
 	fmt.Printf("===============\n")
-	fmt.Printf("%3s %-20s %8s %8s %8s %8s %8s\n", "Pos", "Team", "Attack", "Defense", "λ_Home", "λ_Away", "SeasonPts")
-	fmt.Printf("%3s %-20s %8s %8s %8s %8s %8s\n", "---", "----", "------", "-------", "------", "------", "---------")
+	fmt.Printf("%3s %-20s %5s %5s %5s %8s %8s %8s %8s %8s\n", 
+		"Pos", "Team", "Pts", "GD", "Pld", "Attack", "Defense", "λ_Home", "λ_Away", "SeasonPts")
+	fmt.Printf("%3s %-20s %5s %5s %5s %8s %8s %8s %8s %8s\n", 
+		"---", "----", "---", "--", "---", "------", "-------", "------", "------", "---------")
 
-	for i, rating := range result.TeamRatings {
-		fmt.Printf("%3d %-20s %8.3f %8.3f %8.2f %8.2f %8.1f\n",
+	for i, team := range result.Teams {
+		fmt.Printf("%3d %-20s %5d %5d %5d %8.3f %8.3f %8.2f %8.2f %8.1f\n",
 			i+1, // Position index starting from 1
-			rating.Team,
-			rating.AttackRating,
-			rating.DefenseRating,
-			rating.LambdaHome,  // Already exp(attack + homeAdv)
-			rating.LambdaAway,  // Already exp(attack)
-			rating.ExpectedSeasonPoints,
+			team.Name,
+			team.Points,
+			team.GoalDifference,
+			team.Played,
+			team.AttackRating,
+			team.DefenseRating,
+			team.LambdaHome,
+			team.LambdaAway,
+			team.ExpectedSeasonPoints,
 		)
 	}
 
@@ -162,25 +167,25 @@ func main() {
 	var attackSum, defenseSum float64
 	var attackMin, attackMax, defenseMin, defenseMax float64 = math.Inf(1), math.Inf(-1), math.Inf(1), math.Inf(-1)
 	
-	for _, rating := range result.TeamRatings {
-		attackSum += rating.AttackRating
-		defenseSum += rating.DefenseRating
+	for _, team := range result.Teams {
+		attackSum += team.AttackRating
+		defenseSum += team.DefenseRating
 		
-		if rating.AttackRating < attackMin {
-			attackMin = rating.AttackRating
+		if team.AttackRating < attackMin {
+			attackMin = team.AttackRating
 		}
-		if rating.AttackRating > attackMax {
-			attackMax = rating.AttackRating
+		if team.AttackRating > attackMax {
+			attackMax = team.AttackRating
 		}
-		if rating.DefenseRating < defenseMin {
-			defenseMin = rating.DefenseRating
+		if team.DefenseRating < defenseMin {
+			defenseMin = team.DefenseRating
 		}
-		if rating.DefenseRating > defenseMax {
-			defenseMax = rating.DefenseRating
+		if team.DefenseRating > defenseMax {
+			defenseMax = team.DefenseRating
 		}
 	}
 	
-	numTeams := float64(len(result.TeamRatings))
+	numTeams := float64(len(result.Teams))
 	
 	fmt.Printf("Attack ratings  - Mean: %6.3f, Range: [%6.3f, %6.3f]\n", 
 		attackSum/numTeams, attackMin, attackMax)
@@ -200,7 +205,7 @@ func main() {
 	}
 
 	fmt.Printf("\n🎯 MLE optimization completed successfully!\n")
-	fmt.Printf("   - Processed %d matches for %d teams\n", result.MatchesProcessed, len(result.TeamRatings))
+	fmt.Printf("   - Processed %d matches for %d teams\n", result.MatchesProcessed, len(result.Teams))
 	fmt.Printf("   - Ratings represent log-scale parameters for Poisson goal distributions\n")
 }
 
@@ -324,16 +329,16 @@ func loadEventsFromFile(filename string) ([]outrightsmle.MatchResult, error) {
 	return events, nil
 }
 
-// TeamRatingResult holds team ratings with league information
-type TeamRatingResult struct {
-	League     string
-	Season     string
-	TeamRating outrightsmle.TeamRating
+// TeamResult holds team data with league information
+type TeamResult struct {
+	League string
+	Season string
+	Team   outrightsmle.Team
 }
 
 
-// runMLEModel processes all events using the API and returns team ratings grouped by league
-func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tolerance float64) (map[string][]TeamRatingResult, error) {
+// runMLEModel processes all events using the API and returns teams grouped by league
+func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tolerance float64) (map[string][]TeamResult, error) {
 	// Set up MLE options with custom SimParams
 	simParams := outrightsmle.DefaultSimParams()
 	simParams.MaxIterations = maxiter
@@ -358,52 +363,58 @@ func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tol
 	}
 
 	// Convert API result to demo format for display compatibility
-	teamRatingsByLeague := make(map[string][]TeamRatingResult)
+	teamsByLeague := make(map[string][]TeamResult)
 	
-	for league, ratings := range result.Leagues {
-		var convertedRatings []TeamRatingResult
-		for _, rating := range ratings {
-			convertedRatings = append(convertedRatings, TeamRatingResult{
-				League:     league,
-				Season:     result.LatestSeason,
-				TeamRating: rating,
+	for league, teams := range result.Leagues {
+		var convertedTeams []TeamResult
+		for _, team := range teams {
+			convertedTeams = append(convertedTeams, TeamResult{
+				League: league,
+				Season: result.LatestSeason,
+				Team:   team,
 			})
 		}
-		teamRatingsByLeague[league] = convertedRatings
+		teamsByLeague[league] = convertedTeams
 	}
 
-	return teamRatingsByLeague, nil
+	return teamsByLeague, nil
 }
 
 
-// displayTeamRatingsByLeague prints team ratings grouped by league
-func displayTeamRatingsByLeague(teamRatingsByLeague map[string][]TeamRatingResult, verbose bool) {
+// displayTeamsByLeague prints teams grouped by league
+func displayTeamsByLeague(teamsByLeague map[string][]TeamResult, verbose bool) {
 	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
 	
 	for _, league := range leagues {
-		ratings, exists := teamRatingsByLeague[league]
-		if !exists || len(ratings) == 0 {
+		teams, exists := teamsByLeague[league]
+		if !exists || len(teams) == 0 {
 			continue
 		}
 
 		// Sort teams by expected season points (descending) for league table order
-		sort.Slice(ratings, func(i, j int) bool {
-			return ratings[i].TeamRating.ExpectedSeasonPoints > ratings[j].TeamRating.ExpectedSeasonPoints
+		sort.Slice(teams, func(i, j int) bool {
+			return teams[i].Team.ExpectedSeasonPoints > teams[j].Team.ExpectedSeasonPoints
 		})
 
-		fmt.Printf("\n🏆 %s (%d teams):\n", league, len(ratings))
-		fmt.Printf("%3s %-20s %8s %8s %8s %8s %8s\n", "Pos", "Team", "Attack", "Defense", "λ_Home", "λ_Away", "SeasonPts")
-		fmt.Printf("%3s %-20s %8s %8s %8s %8s %8s\n", "---", "----", "------", "-------", "------", "------", "---------")
+		fmt.Printf("\n🏆 %s (%d teams):\n", league, len(teams))
+		fmt.Printf("%3s %-20s %5s %5s %5s %8s %8s %8s %8s %8s\n", 
+			"Pos", "Team", "Pts", "GD", "Pld", "Attack", "Defense", "λ_Home", "λ_Away", "SeasonPts")
+		fmt.Printf("%3s %-20s %5s %5s %5s %8s %8s %8s %8s %8s\n", 
+			"---", "----", "---", "--", "---", "------", "-------", "------", "------", "---------")
 
-		for i, rating := range ratings {
-			fmt.Printf("%3d %-20s %8.3f %8.3f %8.2f %8.2f %8.1f\n",
+		for i, teamResult := range teams {
+			team := teamResult.Team
+			fmt.Printf("%3d %-20s %5d %5d %5d %8.3f %8.3f %8.2f %8.2f %8.1f\n",
 				i+1, // Position index starting from 1
-				rating.TeamRating.Team,
-				rating.TeamRating.AttackRating,
-				rating.TeamRating.DefenseRating,
-				rating.TeamRating.LambdaHome,  // Already exp(attack + homeAdv)
-				rating.TeamRating.LambdaAway,  // Already exp(attack)
-				rating.TeamRating.ExpectedSeasonPoints,
+				team.Name,
+				team.Points,
+				team.GoalDifference,
+				team.Played,
+				team.AttackRating,
+				team.DefenseRating,
+				team.LambdaHome,
+				team.LambdaAway,
+				team.ExpectedSeasonPoints,
 			)
 		}
 	}
