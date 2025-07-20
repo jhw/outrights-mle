@@ -497,10 +497,10 @@ func displayMarkTables(result *outrightsmle.MultiLeagueResult) {
 					if markValue, exists := teamMarks[team.Name]; exists {
 						fmt.Printf(" %6.3f", markValue)
 					} else {
-						fmt.Printf(" %6.3f", 0.000)
+						fmt.Printf(" %6s", "")  // Blank for teams not in this market
 					}
 				} else {
-					fmt.Printf(" %6.3f", 0.000)
+					fmt.Printf(" %6s", "")  // Blank if market doesn't exist
 				}
 			}
 			fmt.Printf("\n")
@@ -515,6 +515,14 @@ func compactMarketName(market string) string {
 	// Handle specific patterns first
 	result := market
 	
+	// Outside Top patterns (must come before Top patterns)
+	result = strings.ReplaceAll(result, "Outside Top Two", "OT2")
+	result = strings.ReplaceAll(result, "Outside Top Three", "OT3")
+	result = strings.ReplaceAll(result, "Outside Top Four", "OT4")
+	result = strings.ReplaceAll(result, "Outside Top Five", "OT5")
+	result = strings.ReplaceAll(result, "Outside Top Six", "OT6")
+	result = strings.ReplaceAll(result, "Outside Top Seven", "OT7")
+	
 	// Top/Big + Number patterns
 	result = strings.ReplaceAll(result, "Top Two", "T2")
 	result = strings.ReplaceAll(result, "Top Three", "T3")
@@ -525,22 +533,16 @@ func compactMarketName(market string) string {
 	result = strings.ReplaceAll(result, "Top Half", "T½")
 	
 	result = strings.ReplaceAll(result, "Big Six", "B6")
-	result = strings.ReplaceAll(result, "Big Seven", "B7")
-	
+	result = strings.ReplaceAll(result, "Big Seven", "B7")	
+
 	result = strings.ReplaceAll(result, "Bottom Half", "B½")
 	
 	// Common words
 	result = strings.ReplaceAll(result, "Winner", "Win")
 	result = strings.ReplaceAll(result, "Relegation", "Rlg")
-	result = strings.ReplaceAll(result, "Promotion", "Prm")
+	result = strings.ReplaceAll(result, "Promotion", "Prom")
 	result = strings.ReplaceAll(result, "Without", "W/O")
-	result = strings.ReplaceAll(result, "Bottom", "Bot")
-	result = strings.ReplaceAll(result, "Outside", "Out")
-	result = strings.ReplaceAll(result, "London", "Ldn")
-	result = strings.ReplaceAll(result, "To Stay", "Stay")
-	result = strings.ReplaceAll(result, "To Make", "Make")
-	result = strings.ReplaceAll(result, "Make the Playoffs", "PlyOff")
-	result = strings.ReplaceAll(result, "Playoffs", "PlyOff")
+	result = strings.ReplaceAll(result, "Bottom", "Btm")
 	
 	// Truncate to 6 characters max
 	if len(result) > 6 {

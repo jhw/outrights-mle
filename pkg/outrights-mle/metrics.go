@@ -128,7 +128,7 @@ func calculateMarkValues(simPoints *SimPoints, markets []Market, league string) 
 		// Get position probabilities for teams eligible for this market (cached)
 		marketPositionProbs := simPoints.positionProbabilities(market.Teams)
 		
-		// Calculate expected value for ALL teams in the league
+		// Calculate expected value ONLY for teams included in this market
 		for _, teamName := range simPoints.TeamNames {
 			// Check if this team is included in this market
 			teamIncluded := false
@@ -153,10 +153,8 @@ func calculateMarkValues(simPoints *SimPoints, markets []Market, league string) 
 					
 					teamMarks[teamName] = expectedValue
 				}
-			} else {
-				// Team is excluded from this market - mark value is 0
-				teamMarks[teamName] = 0.000
 			}
+			// Teams excluded from market are not added to teamMarks (will be blank in display)
 		}
 		
 		markValues[market.Name] = teamMarks
