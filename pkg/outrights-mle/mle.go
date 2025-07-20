@@ -52,10 +52,16 @@ func findLatestSeason(matches []MatchResult) string {
 
 // Optimize runs the MLE optimization algorithm
 func (s *MLESolver) Optimize() (*MLEParams, error) {
+	// Get simulation parameters (use defaults if not provided)
+	simParams := s.options.SimParams
+	if simParams == nil {
+		simParams = DefaultSimParams()
+	}
+
 	// Initialize parameters
 	s.params = &MLEParams{
-		HomeAdvantage:  0.3,  // Default home advantage
-		Rho:           -0.1,  // Dixon-Coles parameter
+		HomeAdvantage:  simParams.HomeAdvantage,  // From SimParams
+		Rho:           simParams.DixonColesRho,   // From SimParams
 		AttackRatings:  make(map[string]float64),
 		DefenseRatings: make(map[string]float64),
 	}
@@ -74,7 +80,7 @@ func (s *MLESolver) Optimize() (*MLEParams, error) {
 		}
 	}
 
-	learningRate := 0.001 // Match gist exactly
+	learningRate := simParams.BaseLearningRate // From SimParams
 	prevLogLikelihood := s.CalculateLogLikelihood()
 	
 	if s.options.Debug {
@@ -82,7 +88,7 @@ func (s *MLESolver) Optimize() (*MLEParams, error) {
 	}
 	
 	// Gradient ascent optimization
-	for iter := 0; iter < s.options.MaxIter; iter++ {
+	for iter := 0; iter < simParams.MaxIterations; iter++ {
 		s.updateRatings(learningRate)
 		
 		currentLogLikelihood := s.CalculateLogLikelihood()
@@ -93,7 +99,7 @@ func (s *MLESolver) Optimize() (*MLEParams, error) {
 		}
 		
 		// Check convergence
-		if iter > 0 && math.Abs(currentLogLikelihood-prevLogLikelihood) < s.options.Tolerance {
+		if iter > 0 && math.Abs(currentLogLikelihood-prevLogLikelihood) < simParams.Tolerance {
 			s.params.LogLikelihood = currentLogLikelihood
 			s.params.Iterations = iter + 1
 			s.params.Converged = true
@@ -108,7 +114,7 @@ func (s *MLESolver) Optimize() (*MLEParams, error) {
 
 	// Maximum iterations reached
 	s.params.LogLikelihood = s.CalculateLogLikelihood()
-	s.params.Iterations = s.options.MaxIter
+	s.params.Iterations = simParams.MaxIterations
 	s.params.Converged = false
 
 	return s.params, nil
@@ -270,16 +276,19 @@ func (s *MLESolver) DixonColesAdjustment(homeGoals, awayGoals int, rho float64) 
 
 // getTimeWeight returns temporal weighting for matches
 func (s *MLESolver) getTimeWeight(season string) float64 {
+	// Get simulation parameters (use defaults if not provided)
+	simParams := s.options.SimParams
+	if simParams == nil {
+		simParams = DefaultSimParams()
+	}
+
 	// Calculate years since latest season in the data
 	latestYear := s.convertSeasonToYear(s.latestSeason)
 	seasonYear := s.convertSeasonToYear(season)
 	yearsAgo := float64(latestYear - seasonYear)
 	
-	// Apply exponential decay with power of 1.5
-	// 0 years ago (current): 1.0
-	// 1 year ago: 0.78 (0.85^1.5)  
-	// 2 years ago: 0.59 (0.85^3.0)
-	return math.Pow(0.85, yearsAgo*1.5)
+	// Apply exponential decay with configurable base and power
+	return math.Pow(simParams.TimeDecayBase, yearsAgo*simParams.TimeDecayPower)
 }
 
 // convertSeasonToYear converts season string to starting year
@@ -303,18 +312,24 @@ func (s *MLESolver) convertSeasonToYear(season string) int {
 
 // getAdaptiveLearningRate returns enhanced learning rate for teams with league changes  
 func (s *MLESolver) getAdaptiveLearningRate(team string, baseLearningRate float64, match MatchResult) float64 {
-	// Copy the exact gist implementation with dynamic latest season
+	// Get simulation parameters (use defaults if not provided)
+	simParams := s.options.SimParams
+	if simParams == nil {
+		simParams = DefaultSimParams()
+	}
+
+	// Apply enhanced learning for promoted/relegated teams
 	if s.promotedTeams[team] {
 		// Decay the enhancement over the current (latest) season
-		// Start with 3x rate, decay to 1x rate over the season
 		if match.Season == s.latestSeason {
-			// Enhanced rate decays from 3.0 to 1.0 over current season
+			// Enhanced rate decays from CurrentSeasonStart to CurrentSeasonEnd over current season
 			// Using time weight as proxy for "how far into season"
-			enhancementFactor := 3.0 - 2.0*s.getTimeWeight(s.latestSeason) // 3.0 → 1.0
+			enhancementRange := simParams.CurrentSeasonStart - simParams.CurrentSeasonEnd
+			enhancementFactor := simParams.CurrentSeasonStart - enhancementRange*s.getTimeWeight(s.latestSeason)
 			return baseLearningRate * enhancementFactor
 		} else {
-			// For historical seasons, use moderate 2x enhancement
-			return baseLearningRate * 2.0
+			// For historical seasons, use PromotedLearningRate enhancement
+			return baseLearningRate * simParams.PromotedLearningRate
 		}
 	}
 	return baseLearningRate
@@ -334,9 +349,15 @@ func (s *MLESolver) calculateExpectedMatchPoints(homeTeam, awayTeam string) (flo
 	// Calculate probabilities for different outcomes
 	var homeWinProb, drawProb, awayWinProb float64
 	
+	// Get simulation parameters for goal simulation bound
+	simParams := s.options.SimParams
+	if simParams == nil {
+		simParams = DefaultSimParams()
+	}
+
 	// Sum probabilities for all possible score combinations
-	for homeGoals := 0; homeGoals <= 5; homeGoals++ {
-		for awayGoals := 0; awayGoals <= 5; awayGoals++ {
+	for homeGoals := 0; homeGoals <= simParams.GoalSimulationBound; homeGoals++ {
+		for awayGoals := 0; awayGoals <= simParams.GoalSimulationBound; awayGoals++ {
 			probHome := s.PoissonProb(lambdaHome, homeGoals)
 			probAway := s.PoissonProb(lambdaAway, awayGoals)
 			adjustment := s.DixonColesAdjustment(homeGoals, awayGoals, s.params.Rho)

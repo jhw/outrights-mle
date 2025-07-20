@@ -6,9 +6,7 @@ import (
 	"time"
 )
 
-const (
-	GDMultiplier = 0.1 // Goal difference multiplier (from gist constants)
-)
+// Note: GDMultiplier moved to SimParams.GoalDifferenceEffect
 
 type SimPoints struct {
 	NPaths    int
@@ -83,12 +81,17 @@ func (sp *SimPoints) simulate(homeTeam, awayTeam string, solver *MLESolver) {
 			awayPoints = 3.0
 		}
 		
-		// Add goal difference effect
+		// Add goal difference effect using SimParams
+		simParams := solver.options.SimParams
+		if simParams == nil {
+			simParams = DefaultSimParams()
+		}
+		
 		homeGD := float64(homeGoals - awayGoals)
 		awayGD := float64(awayGoals - homeGoals)
 		
-		sp.Points[homeIdx][path] += homePoints + GDMultiplier*homeGD
-		sp.Points[awayIdx][path] += awayPoints + GDMultiplier*awayGD
+		sp.Points[homeIdx][path] += homePoints + simParams.GoalDifferenceEffect*homeGD
+		sp.Points[awayIdx][path] += awayPoints + simParams.GoalDifferenceEffect*awayGD
 	}
 }
 

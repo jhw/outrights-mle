@@ -101,12 +101,14 @@ func main() {
 		fmt.Printf("✓ Generated %d sample matches\n", len(historicalData))
 	}
 
-	// Set up MLE optimization options
+	// Set up MLE optimization options with custom SimParams
+	simParams := outrightsmle.DefaultSimParams()
+	simParams.MaxIterations = *maxiter
+	simParams.Tolerance = *tolerance
+	
 	options := outrightsmle.MLEOptions{
-		MaxIter:      *maxiter,
-		Tolerance:    *tolerance,
-		LearningRate: 0.1,
-		TimeDecay:    0.78,
+		SimParams: simParams,
+		Debug:     *debug,
 	}
 
 	// Create MLE request
@@ -332,13 +334,14 @@ type TeamRatingResult struct {
 
 // runMLEModel processes all events using the API and returns team ratings grouped by league
 func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tolerance float64) (map[string][]TeamRatingResult, error) {
-	// Set up MLE options
+	// Set up MLE options with custom SimParams
+	simParams := outrightsmle.DefaultSimParams()
+	simParams.MaxIterations = maxiter
+	simParams.Tolerance = tolerance
+	
 	options := outrightsmle.MLEOptions{
-		MaxIter:      maxiter,
-		Tolerance:    tolerance,
-		LearningRate: 0.1,
-		TimeDecay:    0.78,
-		Debug:        debug,
+		SimParams: simParams,
+		Debug:     debug,
 	}
 
 	// Use the high-level API to run MLE optimization across all leagues

@@ -196,7 +196,7 @@ func RunMLESolver(events []MatchResult, options MLEOptions) (*MultiLeagueResult,
 		}
 		
 		// Calculate expected season points for teams in this league
-		expectedSeasonPoints := calculateLeagueSeasonPoints(leagueTeams, mlResult.MLEParams)
+		expectedSeasonPoints := calculateLeagueSeasonPoints(leagueTeams, mlResult.MLEParams, options.SimParams)
 		
 		// Update ratings with expected season points
 		for i := range filteredRatings {
@@ -219,16 +219,20 @@ func RunMLESolver(events []MatchResult, options MLEOptions) (*MultiLeagueResult,
 
 // calculateLeagueSeasonPoints calculates expected points for a full season using Monte Carlo simulation
 // Each team plays every other team both home and away - matches gist simulation exactly
-func calculateLeagueSeasonPoints(teams []string, params MLEParams) map[string]float64 {
-	// Use 5000 simulation paths like the gist
-	const nPaths = 5000
+func calculateLeagueSeasonPoints(teams []string, params MLEParams, simParams *SimParams) map[string]float64 {
+	// Use SimParams for simulation paths
+	if simParams == nil {
+		simParams = DefaultSimParams()
+	}
+	nPaths := simParams.SimulationPaths
 	
 	// Initialize simulation points tracker
 	simPoints := newSimPoints(teams, nPaths)
 	
-	// Create a temporary solver for simulation
+	// Create a temporary solver for simulation with SimParams
 	solver := &MLESolver{
-		params: &params,
+		params:  &params,
+		options: MLEOptions{SimParams: simParams},
 	}
 	
 	// Simulate full season: each team plays every other team home and away

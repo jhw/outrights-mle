@@ -34,13 +34,36 @@ type MLEParams struct {
 	Converged        bool               `json:"converged"`
 }
 
+// SimParams holds all simulation and MLE parameterization values
+type SimParams struct {
+	// Core MLE parameters
+	HomeAdvantage         float64 `json:"home_advantage"`          // Home team advantage (default: 0.3)
+	DixonColesRho         float64 `json:"dixon_coles_rho"`         // Dixon-Coles correlation parameter (default: -0.1)
+	
+	// Learning parameters
+	BaseLearningRate      float64 `json:"base_learning_rate"`      // Base learning rate for gradient ascent (default: 0.001)
+	PromotedLearningRate  float64 `json:"promoted_learning_rate"`  // Historical season multiplier for promoted teams (default: 2.0)
+	CurrentSeasonStart    float64 `json:"current_season_start"`    // Current season start multiplier for promoted teams (default: 3.0)
+	CurrentSeasonEnd      float64 `json:"current_season_end"`      // Current season end multiplier for promoted teams (default: 1.0)
+	
+	// Time weighting parameters
+	TimeDecayBase         float64 `json:"time_decay_base"`         // Time decay base factor (default: 0.85)
+	TimeDecayPower        float64 `json:"time_decay_power"`        // Time decay power exponent (default: 1.5)
+	
+	// Optimization parameters
+	MaxIterations         int     `json:"max_iterations"`          // Maximum MLE iterations (default: 200)
+	Tolerance             float64 `json:"tolerance"`               // Convergence tolerance (default: 1e-6)
+	
+	// Simulation parameters
+	SimulationPaths       int     `json:"simulation_paths"`        // Monte Carlo simulation paths (default: 5000)
+	GoalSimulationBound   int     `json:"goal_simulation_bound"`   // Upper bound for goal calculations (default: 5)
+	GoalDifferenceEffect  float64 `json:"goal_difference_effect"`  // Goal difference multiplier in simulation (default: 0.1)
+}
+
 // MLEOptions configures the MLE optimization parameters
 type MLEOptions struct {
-	MaxIter     int     `json:"max_iter"`     // Maximum MLE iterations (default: 200)
-	Tolerance   float64 `json:"tolerance"`    // Convergence tolerance (default: 1e-6)
-	LearningRate float64 `json:"learning_rate"` // Base learning rate (default: 0.1)
-	TimeDecay   float64 `json:"time_decay"`   // Time decay factor (default: 0.78)
-	Debug       bool    `json:"debug"`        // Enable debug output during optimization
+	SimParams *SimParams `json:"sim_params,omitempty"` // Simulation parameters (uses defaults if nil)
+	Debug     bool       `json:"debug"`                // Enable debug output during optimization
 }
 
 
@@ -62,12 +85,38 @@ type MLERequest struct {
 
 
 
+// DefaultSimParams returns default simulation and MLE parameterization values
+func DefaultSimParams() *SimParams {
+	return &SimParams{
+		// Core MLE parameters
+		HomeAdvantage:         0.3,   // Home team advantage
+		DixonColesRho:        -0.1,   // Dixon-Coles correlation parameter
+		
+		// Learning parameters
+		BaseLearningRate:     0.001,  // Base learning rate for gradient ascent
+		PromotedLearningRate: 2.0,    // Historical season multiplier for promoted teams
+		CurrentSeasonStart:   3.0,    // Current season start multiplier for promoted teams
+		CurrentSeasonEnd:     1.0,    // Current season end multiplier for promoted teams
+		
+		// Time weighting parameters
+		TimeDecayBase:        0.85,   // Time decay base factor
+		TimeDecayPower:       1.5,    // Time decay power exponent
+		
+		// Optimization parameters
+		MaxIterations:        200,    // Maximum MLE iterations
+		Tolerance:            1e-6,   // Convergence tolerance
+		
+		// Simulation parameters
+		SimulationPaths:      5000,   // Monte Carlo simulation paths
+		GoalSimulationBound:  5,      // Upper bound for goal calculations
+		GoalDifferenceEffect: 0.1,    // Goal difference multiplier in simulation
+	}
+}
+
 // DefaultMLEOptions returns default MLE optimization options
 func DefaultMLEOptions() MLEOptions {
 	return MLEOptions{
-		MaxIter:      200,
-		Tolerance:    1e-6,
-		LearningRate: 0.1,
-		TimeDecay:    0.78,
+		SimParams: DefaultSimParams(),
+		Debug:     false,
 	}
 }
