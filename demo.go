@@ -329,10 +329,69 @@ type TeamRatingResult struct {
 	TeamRating outrightsmle.TeamRating
 }
 
+// TeamConfig represents a team configuration from core-data
+type TeamConfig struct {
+	Name     string   `json:"name"`
+	AltNames []string `json:"altNames,omitempty"`
+}
+
+// loadLeagueGroups loads team configurations from core-data/teams files
+func loadLeagueGroups() (map[string][]string, error) {
+	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
+	leagueGroups := make(map[string][]string)
+	
+	for _, league := range leagues {
+		filename := fmt.Sprintf("core-data/%s-teams.json", league)
+		
+		// Check if file exists
+		if _, err := os.Stat(filename); os.IsNotExist(err) {
+			// File doesn't exist, skip this league
+			continue
+		}
+		
+		file, err := os.Open(filename)
+		if err != nil {
+			return nil, fmt.Errorf("opening teams file %s: %w", filename, err)
+		}
+		defer file.Close()
+		
+		var teams []TeamConfig
+		decoder := json.NewDecoder(file)
+		if err := decoder.Decode(&teams); err != nil {
+			return nil, fmt.Errorf("decoding teams JSON from %s: %w", filename, err)
+		}
+		
+		// Extract team names
+		var teamNames []string
+		for _, team := range teams {
+			teamNames = append(teamNames, team.Name)
+		}
+		
+		leagueGroups[league] = teamNames
+	}
+	
+	return leagueGroups, nil
+}
+
 // runMLEModel processes all events and returns team ratings grouped by league for latest season
 func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tolerance float64) (map[string][]TeamRatingResult, error) {
 	if len(events) == 0 {
 		return nil, fmt.Errorf("no events data provided")
+	}
+
+	// Load league groups from core-data/teams files  
+	leagueGroups, err := loadLeagueGroups()
+	if err != nil {
+		if debug {
+			fmt.Printf("⚠️  Could not load league groups: %v (will use latest season teams)\n", err)
+		}
+		leagueGroups = nil // Will fallback to latest season teams
+	} else if debug {
+		fmt.Printf("📂 Loaded league groups: ")
+		for league, teams := range leagueGroups {
+			fmt.Printf("%s(%d teams) ", league, len(teams))
+		}
+		fmt.Printf("\n")
 	}
 
 	// Find latest season dynamically
@@ -385,6 +444,7 @@ func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tol
 			Season:         latestSeason,
 			HistoricalData: leagueEvents,
 			PromotedTeams:  promotedTeams, // Pass promoted teams for enhanced learning
+			LeagueGroups:   leagueGroups,  // Pass league groups for team filtering
 			Options:        options,
 		}
 
@@ -402,13 +462,29 @@ func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tol
 				league, result.MLEParams.Iterations, result.MLEParams.Converged)
 		}
 
-		// Filter ratings for latest season teams only
-		var latestSeasonRatings []TeamRatingResult
-		latestSeasonTeams := getTeamsInSeason(leagueEvents, latestSeason)
+		// Filter ratings based on league groups or latest season teams
+		var filteredRatings []TeamRatingResult
+		var targetTeams map[string]bool
+		
+		// Use league groups if available, otherwise fall back to latest season teams
+		if leagueGroups != nil && len(leagueGroups[league]) > 0 {
+			targetTeams = make(map[string]bool)
+			for _, team := range leagueGroups[league] {
+				targetTeams[team] = true
+			}
+			if debug {
+				fmt.Printf("🎯 Using league groups: %d teams for %s\n", len(leagueGroups[league]), league)
+			}
+		} else {
+			targetTeams = getTeamsInSeason(leagueEvents, latestSeason)
+			if debug {
+				fmt.Printf("📅 Using latest season teams: %d teams for %s\n", len(targetTeams), league)
+			}
+		}
 
 		for _, rating := range result.TeamRatings {
-			if _, inLatestSeason := latestSeasonTeams[rating.Team]; inLatestSeason {
-				latestSeasonRatings = append(latestSeasonRatings, TeamRatingResult{
+			if _, isTargetTeam := targetTeams[rating.Team]; isTargetTeam {
+				filteredRatings = append(filteredRatings, TeamRatingResult{
 					League:     league,
 					Season:     latestSeason,
 					TeamRating: rating,
@@ -416,7 +492,7 @@ func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tol
 			}
 		}
 
-		teamRatingsByLeague[league] = latestSeasonRatings
+		teamRatingsByLeague[league] = filteredRatings
 	}
 
 	return teamRatingsByLeague, nil

@@ -59,6 +59,7 @@ type MLERequest struct {
 	Season         string            `json:"season"`
 	HistoricalData []MatchResult     `json:"historical_data"`
 	PromotedTeams  map[string]bool   `json:"promoted_teams"`  // Teams with historical league changes
+	LeagueGroups   map[string][]string `json:"league_groups,omitempty"` // Optional: league -> teams mapping
 	Options        MLEOptions        `json:"options"`
 }
 
