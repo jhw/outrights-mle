@@ -1,0 +1,142 @@
+[
+  {
+    "code": "ENG1",
+    "footballDataId": "E0",
+    "oddscheckerPath": "football/english/premier-league",
+    "bbcName": "premier-league",
+    "thefishyId": 1,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "ENG2",
+    "footballDataId": "E1",
+    "oddscheckerPath": "football/english/championship",
+    "bbcName": "championship",
+    "thefishyId": 2,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "ENG3",
+    "footballDataId": "E2",
+    "oddscheckerPath": "football/english/league-1",
+    "bbcName": "league-one",
+    "thefishyId": 3,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "ENG4",
+    "footballDataId": "E3",
+    "oddscheckerPath": "football/english/league-2",
+    "bbcName": "league-two",
+    "thefishyId": 4,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "FRA1",
+    "footballDataId": "F1",
+    "oddscheckerPath": "football/france/ligue-1",
+    "bbcName": "french-ligue-one",
+    "thefishyId": 34,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "FRA2",
+    "footballDataId": "F2",
+    "oddscheckerPath": "football/france/ligue-2",
+    "thefishyId": 84,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "GER1",
+    "footballDataId": "D1",
+    "oddscheckerPath": "football/germany/bundesliga",
+    "bbcName": "german-bundesliga",
+    "thefishyId": 32,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "GER2",
+    "footballDataId": "D2",
+    "oddscheckerPath": "football/germany/bundesliga-2",
+    "thefishyId": 82,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "ITA1",
+    "footballDataId": "I1",
+    "oddscheckerPath": "football/italy/serie-a",
+    "bbcName": "italian-serie-a",
+    "thefishyId": 33,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "ITA2",
+    "footballDataId": "I2",
+    "oddscheckerPath": "football/italy/serie-b",
+    "thefishyId": 83,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "NED1",
+    "footballDataId": "N1",
+    "oddscheckerPath": "football/netherlands/eredivisie",
+    "bbcName": "dutch-eredivisie",
+    "thefishyId": 36,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "SCO2",
+    "footballDataId": "SC1",
+    "oddscheckerPath": "football/scottish/championship",
+    "bbcName": "scottish-championship",
+    "thefishyId": 11,
+    "rounds": 2,
+    "isActive": true
+  },
+  {
+    "code": "SCO3",
+    "footballDataId": "SC2",
+    "oddscheckerPath": "football/scottish/league-1",
+    "bbcName": "scottish-league-one",
+    "thefishyId": 12,
+    "rounds": 2,
+    "isActive": true
+  },
+  {
+    "code": "SCO4",
+    "footballDataId": "SC3",
+    "oddscheckerPath": "football/scottish/league-2",
+    "bbcName": "scottish-league-two",
+    "thefishyId": 13,
+    "rounds": 2,
+    "isActive": true
+  },
+  {
+    "code": "SPA1",
+    "footballDataId": "SP1",
+    "oddscheckerPath": "football/spain/la-liga-primera",
+    "bbcName": "spanish-la-liga",
+    "thefishyId": 31,
+    "rounds": 1,
+    "isActive": true
+  },
+  {
+    "code": "SPA2",
+    "footballDataId": "SP2",
+    "oddscheckerPath": "football/spain/la-liga-segunda",
+    "thefishyId": 81,
+    "rounds": 1,
+    "isActive": true
+  }
+]

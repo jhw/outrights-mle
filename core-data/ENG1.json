@@ -1,0 +1,103 @@
+[
+  {
+    "name": "Winner",
+    "payoff": "1|19x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/winner"
+  },
+  {
+    "name": "Without Big Seven",
+    "exclude": [
+      "Arsenal",
+      "Chelsea",
+      "Liverpool",
+      "Man City",
+      "Man United",
+      "Newcastle",
+      "Tottenham"
+    ],
+    "payoff": "1|12x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/w-o-big-7"
+  },
+  {
+    "name": "Top Two",
+    "payoff": "2x1|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-2-finish"
+  },
+  {
+    "name": "Top Three",
+    "payoff": "3x1|17x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-3-finish"
+  },
+  {
+    "name": "Top Four",
+    "payoff": "4x1|16x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-4-finish"
+  },
+  {
+    "name": "Outside Top Four",
+    "payoff": "4x0|16x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-finish-outside-the-top-4"
+  },
+  {
+    "name": "Top Six",
+    "payoff": "6x1|14x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-6-finish"
+  },
+  {
+    "name": "Outside Top Six",
+    "payoff": "6x0|14x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-finish-outside-the-top-6"
+  },
+  {
+    "name": "Top Seven",
+    "payoff": "7x1|13x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-7-finish"
+  },
+  {
+    "name": "Top Half",
+    "payoff": "10x1|10x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-finish-in-top-half"
+  },
+  {
+    "name": "Bottom Half",
+    "payoff": "10x0|10x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-finish-in-bottom-half"
+  },
+  {
+    "name": "Relegation",
+    "payoff": "17x0|3x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/relegation"
+  },
+  {
+    "name": "To Stay Up",
+    "payoff": "17x1|3x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-stay-up"
+  },
+  {
+    "name": "Bottom",
+    "payoff": "19x0|1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-finish-bottom"
+  },
+  {
+    "name": "Top London Club",
+    "include": [
+      "Arsenal",
+      "Brentford",
+      "Chelsea",
+      "Crystal Palace",
+      "Fulham",
+      "Tottenham",
+      "West Ham"
+    ],
+    "payoff": "1|6x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-london-club"
+  },
+  {
+    "name": "Without Man City",
+    "exclude": [
+      "Man City"
+    ],
+    "payoff": "1|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/w-o-man-city"
+  }
+]

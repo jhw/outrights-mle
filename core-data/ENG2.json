@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Winner",
+    "payoff": "1|23x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/winner"
+  },
+  {
+    "name": "Top Two",
+    "payoff": "2x1|22x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/top-2-finish"
+  },
+  {
+    "name": "Top Three",
+    "payoff": "3x1|21x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/top-3-finish"
+  },
+  {
+    "name": "Promotion",
+    "payoff": "2x1|4x0.25|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/promotion"
+  },
+  {
+    "name": "To Make The Playoffs",
+    "payoff": "2x0|4x0.25|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/to-make-the-playoffs"
+  },
+  {
+    "name": "Top Six",
+    "payoff": "6x1|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/top-6-finish"
+  },
+  {
+    "name": "Top Half",
+    "payoff": "12x1|12x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/to-finish-in-top-half"
+  },
+  {
+    "name": "Bottom Half",
+    "payoff": "12x0|12x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/to-finish-in-bottom-half"
+  },
+  {
+    "name": "Relegation",
+    "payoff": "21x0|3x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/relegation"
+  },
+  {
+    "name": "Bottom",
+    "payoff": "23x0|1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/to-finish-bottom"
+  }
+]

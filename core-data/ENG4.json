@@ -1,0 +1,47 @@
+[
+  {
+    "name": "Winner",
+    "payoff": "1|23x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/winner"
+  },
+  {
+    "name": "Top Three",
+    "payoff": "3x1|21x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/top-3-finish"
+  },
+  {
+    "name": "Promotion",
+    "payoff": "3x1|4x0.25|17x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/promotion"
+  },
+  {
+    "name": "To Make The Playoffs",
+    "payoff": "3x0|4x1|17x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/to-make-the-playoffs"
+  },
+  {
+    "name": "Top Seven",
+    "payoff": "7x1|17x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/top-7-finish"
+  },
+  {
+    "name": "Top Half",
+    "payoff": "12x1|12x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/to-finish-in-top-half"
+  },
+  {
+    "name": "Bottom Half",
+    "payoff": "12x0|12x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/to-finish-in-bottom-half"
+  },
+  {
+    "name": "Relegation",
+    "payoff": "22x0|2x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/relegation"
+  },
+  {
+    "name": "Bottom",
+    "payoff": "23x0|1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/to-finish-bottom"
+  }
+]
