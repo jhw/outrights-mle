@@ -27,6 +27,14 @@ func main() {
 		dataFile    = flag.String("data", "", "Path to historical match data JSON file")
 		fetchEvents = flag.Bool("fetch-events", false, "Fetch events data from football-data.co.uk and save to fixtures/events.json")
 		runModel    = flag.Bool("run-model", false, "Run MLE model on all leagues using events data")
+		
+		// Simulation parameters
+		timeDecayBase          = flag.Float64("time-decay-base", 0.85, "Time decay base factor")
+		timeDecayFactor        = flag.Float64("time-decay-factor", 1.5, "Time decay power exponent") 
+		learningRateBase       = flag.Float64("learning-rate-base", 0.001, "Base learning rate for gradient ascent")
+		leagueChangeLearningRate = flag.Float64("league-change-learning-rate", 2.0, "Enhancement multiplier for teams that changed leagues")
+		simulationPaths        = flag.Int("simulation-paths", 5000, "Monte Carlo simulation paths")
+		homeAdvantage          = flag.Float64("home-advantage", 0.3, "Home team advantage")
 	)
 	flag.Parse()
 
@@ -48,6 +56,9 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to load events data: %v", err)
 		}
+		
+		// Log events statistics
+		logEventsStatistics(events)
 
 		// Load markets data
 		markets, err := loadMarketsFromFile("fixtures/markets.json")
@@ -58,14 +69,22 @@ func main() {
 			fmt.Printf("✓ Loaded %d markets from fixtures/markets.json\n", len(markets))
 		}
 
+		// Create SimParams with flag overrides
+		simParams := createSimParamsFromFlags(*maxiter, *tolerance, *timeDecayBase, *timeDecayFactor, *learningRateBase, *leagueChangeLearningRate, *simulationPaths, *homeAdvantage)
+		
 		// Run model and get teams by league
-		teamsByLeague, err := runMLEModel(events, markets, *debug, *maxiter, *tolerance)
+		teamsByLeague, result, err := runMLEModel(events, markets, *debug, simParams)
 		if err != nil {
 			log.Fatalf("MLE model failed: %v", err)
 		}
 
-		// Display results for latest season
+		// Display results for latest season - teams first
 		displayTeamsByLeague(teamsByLeague, *verbose)
+		
+		// Display mark tables second if markets were provided  
+		if len(result.MarkValues) > 0 {
+			displayMarkTables(result)
+		}
 		return
 	}
 
@@ -110,10 +129,8 @@ func main() {
 		fmt.Printf("✓ Generated %d sample matches\n", len(historicalData))
 	}
 
-	// Set up MLE optimization options with custom SimParams
-	simParams := outrightsmle.DefaultSimParams()
-	simParams.MaxIterations = *maxiter
-	simParams.Tolerance = *tolerance
+	// Create SimParams with flag overrides
+	simParams := createSimParamsFromFlags(*maxiter, *tolerance, *timeDecayBase, *timeDecayFactor, *learningRateBase, *leagueChangeLearningRate, *simulationPaths, *homeAdvantage)
 	
 	options := outrightsmle.MLEOptions{
 		SimParams: simParams,
@@ -216,6 +233,64 @@ func main() {
 	fmt.Printf("\n🎯 MLE optimization completed successfully!\n")
 	fmt.Printf("   - Processed %d matches for %d teams\n", result.MatchesProcessed, len(result.Teams))
 	fmt.Printf("   - Ratings represent log-scale parameters for Poisson goal distributions\n")
+}
+
+// logEventsStatistics analyzes and logs statistics about the loaded events data
+func logEventsStatistics(events []outrightsmle.MatchResult) {
+	if len(events) == 0 {
+		fmt.Printf("⚠️  No events loaded\n")
+		return
+	}
+	
+	// Count unique leagues, seasons, and teams
+	leagues := make(map[string]bool)
+	seasons := make(map[string]bool)
+	teams := make(map[string]bool)
+	
+	for _, event := range events {
+		leagues[event.League] = true
+		seasons[event.Season] = true
+		teams[event.HomeTeam] = true
+		teams[event.AwayTeam] = true
+	}
+	
+	fmt.Printf("✓ Loaded %d events across %d leagues, %d seasons, %d teams\n", 
+		len(events), len(leagues), len(seasons), len(teams))
+	
+	// Show breakdown by league if multiple leagues
+	if len(leagues) > 1 {
+		leagueCounts := make(map[string]int)
+		for _, event := range events {
+			leagueCounts[event.League]++
+		}
+		fmt.Printf("  League breakdown: ")
+		first := true
+		for league, count := range leagueCounts {
+			if !first {
+				fmt.Printf(", ")
+			}
+			fmt.Printf("%s (%d)", league, count)
+			first = false
+		}
+		fmt.Printf("\n")
+	}
+}
+
+// createSimParamsFromFlags creates SimParams with defaults, overriding with provided flag values
+func createSimParamsFromFlags(maxiter int, tolerance, timeDecayBase, timeDecayFactor, learningRateBase, leagueChangeLearningRate float64, simulationPaths int, homeAdvantage float64) *outrightsmle.SimParams {
+	simParams := outrightsmle.DefaultSimParams()
+	
+	// Override with flag values
+	simParams.MaxIterations = maxiter
+	simParams.Tolerance = tolerance
+	simParams.TimeDecayBase = timeDecayBase
+	simParams.TimeDecayPower = timeDecayFactor
+	simParams.BaseLearningRate = learningRateBase
+	simParams.LeagueChangeLearningRate = leagueChangeLearningRate
+	simParams.SimulationPaths = simulationPaths
+	simParams.HomeAdvantage = homeAdvantage
+	
+	return simParams
 }
 
 // generateSampleData creates sample historical match data for demonstration
@@ -365,12 +440,8 @@ type TeamResult struct {
 
 
 // runMLEModel processes all events using the API and returns teams grouped by league
-func runMLEModel(events []outrightsmle.MatchResult, markets []outrightsmle.Market, debug bool, maxiter int, tolerance float64) (map[string][]TeamResult, error) {
-	// Set up MLE options with custom SimParams
-	simParams := outrightsmle.DefaultSimParams()
-	simParams.MaxIterations = maxiter
-	simParams.Tolerance = tolerance
-	
+func runMLEModel(events []outrightsmle.MatchResult, markets []outrightsmle.Market, debug bool, simParams *outrightsmle.SimParams) (map[string][]TeamResult, *outrightsmle.MultiLeagueResult, error) {
+	// Set up MLE options with provided SimParams
 	options := outrightsmle.MLEOptions{
 		SimParams: simParams,
 		Debug:     debug,
@@ -384,9 +455,9 @@ func runMLEModel(events []outrightsmle.MatchResult, markets []outrightsmle.Marke
 			fmt.Printf("❌ League groups configuration validation failed:\n")
 			fmt.Printf("   Teams in core-data/*-teams.json files must exist in the event data.\n")
 			fmt.Printf("   Error: %v\n", err)
-			return nil, fmt.Errorf("invalid league groups configuration")
+			return nil, nil, fmt.Errorf("invalid league groups configuration")
 		}
-		return nil, fmt.Errorf("MLE solver failed: %w", err)
+		return nil, nil, fmt.Errorf("MLE solver failed: %w", err)
 	}
 
 	// Convert API result to demo format for display compatibility
@@ -404,12 +475,7 @@ func runMLEModel(events []outrightsmle.MatchResult, markets []outrightsmle.Marke
 		teamsByLeague[league] = convertedTeams
 	}
 
-	// Display mark tables if markets were provided
-	if len(result.MarkValues) > 0 {
-		displayMarkTables(result)
-	}
-
-	return teamsByLeague, nil
+	return teamsByLeague, result, nil
 }
 
 
