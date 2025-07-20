@@ -38,8 +38,8 @@ func OptimizeRatings(request MLERequest) (*MLEResult, error) {
 			Team:          team,
 			AttackRating:  params.AttackRatings[team],
 			DefenseRating: params.DefenseRatings[team],
-			LambdaHome:    calculateExpectedGoals(params.AttackRatings[team], params.DefenseRatings[team], params.HomeAdvantage, true),
-			LambdaAway:    calculateExpectedGoals(params.AttackRatings[team], params.DefenseRatings[team], params.HomeAdvantage, false),
+			LambdaHome:    math.Exp(params.AttackRatings[team] + params.HomeAdvantage),  // attack + 0.3
+			LambdaAway:    math.Exp(params.AttackRatings[team]),                        // just attack
 		}
 		teamRatings = append(teamRatings, rating)
 	}
@@ -96,16 +96,6 @@ func extractTeams(matches []MatchResult) []string {
 	return teams
 }
 
-// calculateExpectedGoals computes expected goals for a team - matches gist display calculation
-func calculateExpectedGoals(attack, defense, homeAdv float64, isHome bool) float64 {
-	// Match gist lines 447-448 and 467-468 exactly:
-	// LambdaHome: math.Exp(attack + 0.3)
-	// LambdaAway: math.Exp(attack) 
-	if isHome {
-		return math.Exp(attack + homeAdv)  // attack + 0.3
-	}
-	return math.Exp(attack) // just attack
-}
 
 // MultiLeagueResult holds results for multiple leagues
 type MultiLeagueResult struct {

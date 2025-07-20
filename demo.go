@@ -147,8 +147,8 @@ func main() {
 			rating.Team,
 			rating.AttackRating,
 			rating.DefenseRating,
-			math.Exp(rating.LambdaHome),
-			math.Exp(rating.LambdaAway),
+			rating.LambdaHome,  // Already exp(attack + homeAdv)
+			rating.LambdaAway,  // Already exp(attack)
 		)
 	}
 
@@ -389,8 +389,8 @@ func displayTeamRatingsByLeague(teamRatingsByLeague map[string][]TeamRatingResul
 				rating.TeamRating.Team,
 				rating.TeamRating.AttackRating,
 				rating.TeamRating.DefenseRating,
-				math.Exp(rating.TeamRating.LambdaHome),
-				math.Exp(rating.TeamRating.LambdaAway),
+				rating.TeamRating.LambdaHome,  // Already exp(attack + homeAdv)
+				rating.TeamRating.LambdaAway,  // Already exp(attack)
 			)
 		}
 	}
