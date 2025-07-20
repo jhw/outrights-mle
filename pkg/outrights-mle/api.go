@@ -66,7 +66,7 @@ func validateRequest(request MLERequest) error {
 	}
 
 	// Check for required teams
-	teams := extractTeams(request.HistoricalData)
+	teams := ExtractTeams(request.HistoricalData)
 	if len(teams) < 10 {
 		return fmt.Errorf("insufficient teams: need at least 10 teams, got %d", len(teams))
 	}
@@ -74,21 +74,6 @@ func validateRequest(request MLERequest) error {
 	return nil
 }
 
-// extractTeams gets unique team names from match data
-func extractTeams(matches []MatchResult) []string {
-	teamSet := make(map[string]bool)
-	for _, match := range matches {
-		teamSet[match.HomeTeam] = true
-		teamSet[match.AwayTeam] = true
-	}
-
-	teams := make([]string, 0, len(teamSet))
-	for team := range teamSet {
-		teams = append(teams, team)
-	}
-
-	return teams
-}
 
 
 // MultiLeagueResult holds results for multiple leagues

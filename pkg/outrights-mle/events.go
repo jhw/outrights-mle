@@ -198,3 +198,19 @@ func GetTeamsInSeason(events []MatchResult, season string) map[string]bool {
 	}
 	return teams
 }
+
+// ExtractTeams gets unique team names from match data
+func ExtractTeams(matches []MatchResult) []string {
+	teamSet := make(map[string]bool)
+	for _, match := range matches {
+		teamSet[match.HomeTeam] = true
+		teamSet[match.AwayTeam] = true
+	}
+
+	teams := make([]string, 0, len(teamSet))
+	for team := range teamSet {
+		teams = append(teams, team)
+	}
+
+	return teams
+}
