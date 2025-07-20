@@ -2,6 +2,7 @@ package outrightsmle
 
 import (
 	"fmt"
+	"sort"
 	"time"
 )
 
@@ -102,3 +103,121 @@ func calculateExpectedGoals(attack, defense, homeAdv float64, isHome bool) float
 	}
 	return lambda
 }
+
+// MultiLeagueResult holds results for multiple leagues
+type MultiLeagueResult struct {
+	Leagues       map[string][]TeamRating `json:"leagues"`        // league -> team ratings
+	LatestSeason  string                  `json:"latest_season"`  
+	TotalMatches  int                     `json:"total_matches"`
+	ProcessingTime time.Duration          `json:"processing_time"`
+}
+
+// ProcessMultipleLeagues processes events for multiple leagues and returns organized results
+// This is the main high-level API for processing multi-league event data
+func ProcessMultipleLeagues(events []MatchResult, options MLEOptions) (*MultiLeagueResult, error) {
+	startTime := time.Now()
+	
+	if len(events) == 0 {
+		return nil, fmt.Errorf("no events data provided")
+	}
+	
+	// Initialize event processor
+	processor := NewEventProcessor(events, options.Debug)
+	
+	// Load league groups (team configurations)
+	if err := processor.LoadLeagueGroups(); err != nil {
+		if options.Debug {
+			fmt.Printf("⚠️  Could not load league groups: %v (will use latest season teams)\n", err)
+		}
+	}
+	
+	// Process events using the events module
+	latestSeason := processor.FindLatestSeason()
+	eventsByLeague := processor.GroupEventsByLeague()
+	promotedTeams := processor.DetectPromotedTeams()
+	leagueGroups := processor.GetLeagueGroups()
+	
+	result := &MultiLeagueResult{
+		Leagues:        make(map[string][]TeamRating),
+		LatestSeason:   latestSeason,
+		TotalMatches:   len(events),
+		ProcessingTime: time.Since(startTime),
+	}
+	
+	// Process each league
+	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
+	for _, league := range leagues {
+		leagueEvents, exists := eventsByLeague[league]
+		if !exists {
+			if options.Debug {
+				fmt.Printf("⚠️  No events found for league %s\n", league)
+			}
+			continue
+		}
+		
+		if options.Debug {
+			fmt.Printf("\n🏈 Processing %s (%d events)...\n", league, len(leagueEvents))
+		}
+		
+		// Create MLE request for this league
+		request := MLERequest{
+			League:         league,
+			Season:         latestSeason,
+			HistoricalData: leagueEvents,
+			PromotedTeams:  promotedTeams,
+			LeagueGroups:   leagueGroups,
+			Options:        options,
+		}
+		
+		// Run MLE optimization
+		leagueResult, err := OptimizeRatings(request)
+		if err != nil {
+			if options.Debug {
+				fmt.Printf("❌ MLE optimization failed for %s: %v\n", league, err)
+			}
+			continue
+		}
+		
+		if options.Debug {
+			fmt.Printf("✅ %s optimization complete: %d iterations, converged=%v\n", 
+				league, leagueResult.MLEParams.Iterations, leagueResult.MLEParams.Converged)
+		}
+		
+		// Filter ratings based on league groups or latest season teams
+		var filteredRatings []TeamRating
+		var targetTeams map[string]bool
+		
+		// Use league groups if available, otherwise fall back to latest season teams
+		if leagueGroups != nil && len(leagueGroups[league]) > 0 {
+			targetTeams = make(map[string]bool)
+			for _, team := range leagueGroups[league] {
+				targetTeams[team] = true
+			}
+			if options.Debug {
+				fmt.Printf("🎯 Using league groups: %d teams for %s\n", len(leagueGroups[league]), league)
+			}
+		} else {
+			targetTeams = GetTeamsInSeason(leagueEvents, latestSeason)
+			if options.Debug {
+				fmt.Printf("📅 Using latest season teams: %d teams for %s\n", len(targetTeams), league)
+			}
+		}
+		
+		for _, rating := range leagueResult.TeamRatings {
+			if _, isTargetTeam := targetTeams[rating.Team]; isTargetTeam {
+				filteredRatings = append(filteredRatings, rating)
+			}
+		}
+		
+		// Sort by attack rating for consistent display
+		sort.Slice(filteredRatings, func(i, j int) bool {
+			return filteredRatings[i].AttackRating > filteredRatings[j].AttackRating
+		})
+		
+		result.Leagues[league] = filteredRatings
+	}
+	
+	result.ProcessingTime = time.Since(startTime)
+	return result, nil
+}
+
