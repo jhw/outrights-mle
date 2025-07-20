@@ -510,26 +510,37 @@ func displayMarkTables(result *outrightsmle.MultiLeagueResult) {
 	}
 }
 
-// compactMarketName creates compact market names by removing vowels and replacing numbers
+// compactMarketName creates compact market names using intelligent abbreviations
 func compactMarketName(market string) string {
-	// Replace number words with digits
-	market = strings.ReplaceAll(market, "Two", "2")
-	market = strings.ReplaceAll(market, "Three", "3")
-	market = strings.ReplaceAll(market, "Four", "4")
-	market = strings.ReplaceAll(market, "Six", "6")
-	market = strings.ReplaceAll(market, "two", "2")
-	market = strings.ReplaceAll(market, "three", "3")
-	market = strings.ReplaceAll(market, "four", "4")
-	market = strings.ReplaceAll(market, "six", "6")
+	// Handle specific patterns first
+	result := market
 	
-	// Remove vowels (a, e, i, o, u) - keep first character if it's a vowel
-	result := ""
-	for i, char := range market {
-		if i == 0 || (char != 'a' && char != 'e' && char != 'i' && char != 'o' && char != 'u' && 
-					  char != 'A' && char != 'E' && char != 'I' && char != 'O' && char != 'U') {
-			result += string(char)
-		}
-	}
+	// Top/Big + Number patterns
+	result = strings.ReplaceAll(result, "Top Two", "T2")
+	result = strings.ReplaceAll(result, "Top Three", "T3")
+	result = strings.ReplaceAll(result, "Top Four", "T4")
+	result = strings.ReplaceAll(result, "Top Five", "T5")
+	result = strings.ReplaceAll(result, "Top Six", "T6")
+	result = strings.ReplaceAll(result, "Top Seven", "T7")
+	result = strings.ReplaceAll(result, "Top Half", "T½")
+	
+	result = strings.ReplaceAll(result, "Big Six", "B6")
+	result = strings.ReplaceAll(result, "Big Seven", "B7")
+	
+	result = strings.ReplaceAll(result, "Bottom Half", "B½")
+	
+	// Common words
+	result = strings.ReplaceAll(result, "Winner", "Win")
+	result = strings.ReplaceAll(result, "Relegation", "Rlg")
+	result = strings.ReplaceAll(result, "Promotion", "Prm")
+	result = strings.ReplaceAll(result, "Without", "W/O")
+	result = strings.ReplaceAll(result, "Bottom", "Bot")
+	result = strings.ReplaceAll(result, "Outside", "Out")
+	result = strings.ReplaceAll(result, "London", "Ldn")
+	result = strings.ReplaceAll(result, "To Stay", "Stay")
+	result = strings.ReplaceAll(result, "To Make", "Make")
+	result = strings.ReplaceAll(result, "Make the Playoffs", "PlyOff")
+	result = strings.ReplaceAll(result, "Playoffs", "PlyOff")
 	
 	// Truncate to 6 characters max
 	if len(result) > 6 {
