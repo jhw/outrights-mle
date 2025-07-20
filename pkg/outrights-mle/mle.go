@@ -291,24 +291,9 @@ func (s *MLESolver) getAdaptiveLearningRate(team string, baseLearningRate float6
 	// Get simulation parameters
 	simParams := s.options.SimParams
 
-	// Apply enhanced learning for promoted/relegated teams
+	// Apply enhanced learning for promoted/relegated teams (historical data only)
 	if s.promotedTeams[team] {
-		// If latest season is empty (league groups specified), use historical enhancement
-		if s.latestSeason == "" {
-			return baseLearningRate * simParams.PromotedLearningRate
-		}
-		
-		// Decay the enhancement over the current (latest) season
-		if match.Season == s.latestSeason {
-			// Enhanced rate decays from CurrentSeasonStart to CurrentSeasonEnd over current season
-			// Using time weight as proxy for "how far into season"
-			enhancementRange := simParams.CurrentSeasonStart - simParams.CurrentSeasonEnd
-			enhancementFactor := simParams.CurrentSeasonStart - enhancementRange*s.getTimeWeight(s.latestSeason)
-			return baseLearningRate * enhancementFactor
-		} else {
-			// For historical seasons, use PromotedLearningRate enhancement
-			return baseLearningRate * simParams.PromotedLearningRate
-		}
+		return baseLearningRate * simParams.PromotedLearningRate
 	}
 	return baseLearningRate
 }
