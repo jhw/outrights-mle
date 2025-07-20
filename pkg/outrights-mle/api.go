@@ -84,13 +84,20 @@ type MultiLeagueResult struct {
 	ProcessingTime time.Duration          `json:"processing_time"`
 }
 
-// ProcessMultipleLeagues processes events for multiple leagues and returns organized results
-// This is the main high-level API for processing multi-league event data
-func ProcessMultipleLeagues(events []MatchResult, options MLEOptions) (*MultiLeagueResult, error) {
+// RunMLESolver runs MLE optimization across all leagues and returns organized results
+// This is the main high-level API for cross-league MLE optimization
+func RunMLESolver(events []MatchResult, options MLEOptions) (*MultiLeagueResult, error) {
 	startTime := time.Now()
 	
 	if len(events) == 0 {
 		return nil, fmt.Errorf("no events data provided")
+	}
+	
+	// Extract global entities for validation
+	globalEntities := ExtractGlobalEntities(events)
+	if options.Debug {
+		fmt.Printf("🔍 Found %d teams, %d leagues, %d seasons in event data\n", 
+			len(globalEntities.Teams), len(globalEntities.Leagues), len(globalEntities.Seasons))
 	}
 	
 	// Initialize event processor
@@ -103,11 +110,16 @@ func ProcessMultipleLeagues(events []MatchResult, options MLEOptions) (*MultiLea
 		}
 	}
 	
+	// Validate league groups if they were loaded
+	leagueGroups := processor.GetLeagueGroups()
+	if err := ValidateLeagueGroups(leagueGroups, globalEntities); err != nil {
+		return nil, fmt.Errorf("league groups validation failed: %w", err)
+	}
+	
 	// Process events using the events module
 	latestSeason := processor.FindLatestSeason()
 	eventsByLeague := processor.GroupEventsByLeague()
 	promotedTeams := processor.DetectPromotedTeams()
-	leagueGroups := processor.GetLeagueGroups()
 	
 	result := &MultiLeagueResult{
 		Leagues:        make(map[string][]TeamRating),

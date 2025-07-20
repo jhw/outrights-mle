@@ -214,3 +214,49 @@ func ExtractTeams(matches []MatchResult) []string {
 
 	return teams
 }
+
+// ExtractLeagues gets unique league codes from match data
+func ExtractLeagues(matches []MatchResult) []string {
+	leagueSet := make(map[string]bool)
+	for _, match := range matches {
+		leagueSet[match.League] = true
+	}
+
+	leagues := make([]string, 0, len(leagueSet))
+	for league := range leagueSet {
+		leagues = append(leagues, league)
+	}
+
+	return leagues
+}
+
+// ExtractSeasons gets unique season codes from match data
+func ExtractSeasons(matches []MatchResult) []string {
+	seasonSet := make(map[string]bool)
+	for _, match := range matches {
+		seasonSet[match.Season] = true
+	}
+
+	seasons := make([]string, 0, len(seasonSet))
+	for season := range seasonSet {
+		seasons = append(seasons, season)
+	}
+
+	return seasons
+}
+
+// GlobalEntitySummary contains all unique entities found in match data
+type GlobalEntitySummary struct {
+	Teams   []string `json:"teams"`
+	Leagues []string `json:"leagues"`
+	Seasons []string `json:"seasons"`
+}
+
+// ExtractGlobalEntities extracts all unique teams, leagues, and seasons from match data
+func ExtractGlobalEntities(matches []MatchResult) GlobalEntitySummary {
+	return GlobalEntitySummary{
+		Teams:   ExtractTeams(matches),
+		Leagues: ExtractLeagues(matches),
+		Seasons: ExtractSeasons(matches),
+	}
+}

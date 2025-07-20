@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	outrightsmle "github.com/jhw/go-outrights-mle/pkg/outrights-mle"
@@ -340,10 +341,17 @@ func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tol
 		Debug:        debug,
 	}
 
-	// Use the high-level API to process multiple leagues
-	result, err := outrightsmle.ProcessMultipleLeagues(events, options)
+	// Use the high-level API to run MLE optimization across all leagues
+	result, err := outrightsmle.RunMLESolver(events, options)
 	if err != nil {
-		return nil, fmt.Errorf("failed to process leagues: %w", err)
+		// Check if this is a wrapped validation error and provide helpful message
+		if strings.Contains(err.Error(), "league groups validation failed") {
+			fmt.Printf("❌ League groups configuration validation failed:\n")
+			fmt.Printf("   Teams in core-data/*-teams.json files must exist in the event data.\n")
+			fmt.Printf("   Error: %v\n", err)
+			return nil, fmt.Errorf("invalid league groups configuration")
+		}
+		return nil, fmt.Errorf("MLE solver failed: %w", err)
 	}
 
 	// Convert API result to demo format for display compatibility
