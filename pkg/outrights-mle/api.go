@@ -137,53 +137,43 @@ func ProcessMultipleLeagues(events []MatchResult, options MLEOptions) (*MultiLea
 		ProcessingTime: time.Since(startTime),
 	}
 	
-	// Process each league
+	// Sort all events by date for consistent processing order
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].Date < events[j].Date
+	})
+	
+	if options.Debug {
+		fmt.Printf("\n🏈 Running single MLE optimization across ALL leagues (%d total events)...\n", len(events))
+	}
+	
+	// Create single MLE request for ALL events across ALL leagues
+	request := MLERequest{
+		League:         "ALL", // Indicate this is cross-league
+		Season:         latestSeason,
+		HistoricalData: events, // ALL events from ALL leagues
+		PromotedTeams:  promotedTeams,
+		LeagueGroups:   leagueGroups,
+		Options:        options,
+	}
+	
+	// Run single MLE optimization across all leagues
+	mlResult, err := OptimizeRatings(request)
+	if err != nil {
+		return nil, fmt.Errorf("MLE optimization failed: %w", err)
+	}
+	
+	if options.Debug {
+		fmt.Printf("✅ Single MLE optimization complete: %d iterations, converged=%v\n", 
+			mlResult.MLEParams.Iterations, mlResult.MLEParams.Converged)
+	}
+	
+	// Now filter and organize results by league
 	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
 	for _, league := range leagues {
-		leagueEvents, exists := eventsByLeague[league]
-		if !exists {
-			if options.Debug {
-				fmt.Printf("⚠️  No events found for league %s\n", league)
-			}
-			continue
-		}
-		
 		if options.Debug {
-			fmt.Printf("\n🏈 Processing %s (%d events)...\n", league, len(leagueEvents))
+			fmt.Printf("\n📊 Filtering results for %s...\n", league)
 		}
 		
-		// Sort events by date for consistent processing order
-		sortedEvents := make([]MatchResult, len(leagueEvents))
-		copy(sortedEvents, leagueEvents)
-		sort.Slice(sortedEvents, func(i, j int) bool {
-			return sortedEvents[i].Date < sortedEvents[j].Date
-		})
-		
-		// Create MLE request for this league
-		request := MLERequest{
-			League:         league,
-			Season:         latestSeason,
-			HistoricalData: sortedEvents,
-			PromotedTeams:  promotedTeams,
-			LeagueGroups:   leagueGroups,
-			Options:        options,
-		}
-		
-		// Run MLE optimization
-		leagueResult, err := OptimizeRatings(request)
-		if err != nil {
-			if options.Debug {
-				fmt.Printf("❌ MLE optimization failed for %s: %v\n", league, err)
-			}
-			continue
-		}
-		
-		if options.Debug {
-			fmt.Printf("✅ %s optimization complete: %d iterations, converged=%v\n", 
-				league, leagueResult.MLEParams.Iterations, leagueResult.MLEParams.Converged)
-		}
-		
-		// Filter ratings based on league groups or latest season teams
 		var filteredRatings []TeamRating
 		var targetTeams map[string]bool
 		
@@ -197,13 +187,18 @@ func ProcessMultipleLeagues(events []MatchResult, options MLEOptions) (*MultiLea
 				fmt.Printf("🎯 Using league groups: %d teams for %s\n", len(leagueGroups[league]), league)
 			}
 		} else {
-			targetTeams = GetTeamsInSeason(leagueEvents, latestSeason)
-			if options.Debug {
-				fmt.Printf("📅 Using latest season teams: %d teams for %s\n", len(targetTeams), league)
+			// Get teams from latest season for this league
+			leagueEvents := eventsByLeague[league]
+			if leagueEvents != nil {
+				targetTeams = GetTeamsInSeason(leagueEvents, latestSeason)
+				if options.Debug {
+					fmt.Printf("📅 Using latest season teams: %d teams for %s\n", len(targetTeams), league)
+				}
 			}
 		}
 		
-		for _, rating := range leagueResult.TeamRatings {
+		// Filter ratings for this league
+		for _, rating := range mlResult.TeamRatings {
 			if _, isTargetTeam := targetTeams[rating.Team]; isTargetTeam {
 				filteredRatings = append(filteredRatings, rating)
 			}
