@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
+	"sort"
 	"time"
 
 	outrightsmle "github.com/jhw/go-outrights-mle/pkg/outrights-mle"
@@ -15,13 +17,10 @@ func main() {
 	var (
 		league     = flag.String("league", "ENG1", "League code (ENG1, ENG2, ENG3, ENG4)")
 		season     = flag.String("season", "2023-24", "Season identifier")
-		npaths     = flag.Int("npaths", 5000, "Number of Monte Carlo simulation paths")
 		maxiter    = flag.Int("maxiter", 200, "Maximum MLE iterations")
 		tolerance  = flag.Float64("tolerance", 1e-6, "Convergence tolerance")
 		verbose    = flag.Bool("verbose", false, "Verbose output")
 		dataFile   = flag.String("data", "", "Path to historical match data JSON file")
-		teamsFile  = flag.String("teams", "", "Path to teams JSON file")
-		marketsFile = flag.String("markets", "", "Path to markets JSON file")
 	)
 	flag.Parse()
 
@@ -32,12 +31,6 @@ func main() {
 	if *dataFile == "" {
 		*dataFile = fmt.Sprintf("fixtures/%s-matches.json", *league)
 	}
-	if *teamsFile == "" {
-		*teamsFile = fmt.Sprintf("core-data/%s.json", *league)
-	}
-	if *marketsFile == "" {
-		*marketsFile = fmt.Sprintf("core-data/%s.json", *league)
-	}
 
 	// Load configuration and data
 	fmt.Printf("Loading data for %s season %s...\n", *league, *season)
@@ -46,80 +39,89 @@ func main() {
 	historicalData := generateSampleData(*league, *season)
 	fmt.Printf("✓ Generated %d sample matches\n", len(historicalData))
 
-	// Create sample markets
-	markets := generateSampleMarkets(*league)
-	fmt.Printf("✓ Created %d betting markets\n", len(markets))
-
-	// Set up simulation options
-	options := outrightsmle.SimOptions{
-		NPaths:       *npaths,
+	// Set up MLE optimization options
+	options := outrightsmle.MLEOptions{
 		MaxIter:      *maxiter,
 		Tolerance:    *tolerance,
 		LearningRate: 0.1,
 		TimeDecay:    0.78,
 	}
 
-	// Create simulation request
-	request := outrightsmle.SimulationRequest{
+	// Create MLE request
+	request := outrightsmle.MLERequest{
 		League:         *league,
 		Season:         *season,
 		HistoricalData: historicalData,
-		Markets:        markets,
 		Options:        options,
 	}
 
-	fmt.Printf("\nRunning MLE optimization and Monte Carlo simulation...\n")
+	fmt.Printf("\nRunning MLE optimization...\n")
 	fmt.Printf("- Maximum iterations: %d\n", *maxiter)
-	fmt.Printf("- Simulation paths: %d\n", *npaths)
 	fmt.Printf("- Convergence tolerance: %.2e\n", *tolerance)
 
-	// Run the simulation
-	result, err := outrightsmle.Simulate(request)
+	// Run the MLE optimization
+	result, err := outrightsmle.OptimizeRatings(request)
 	if err != nil {
-		log.Fatalf("Simulation failed: %v", err)
+		log.Fatalf("MLE optimization failed: %v", err)
 	}
 
-	fmt.Printf("\n✓ Simulation completed in %v\n", result.ProcessingTime)
-	fmt.Printf("✓ MLE converged: %v (iterations: %d)\n", result.MLEParams.Converged, result.MLEParams.Iterations)
+	fmt.Printf("\n✓ MLE optimization completed in %v\n", result.ProcessingTime)
+	fmt.Printf("✓ Converged: %v (iterations: %d)\n", result.MLEParams.Converged, result.MLEParams.Iterations)
 	fmt.Printf("✓ Log likelihood: %.2f\n", result.MLEParams.LogLikelihood)
+	fmt.Printf("✓ Home advantage: %.3f\n", result.MLEParams.HomeAdvantage)
+
+	// Sort teams by attack rating for better display
+	sort.Slice(result.TeamRatings, func(i, j int) bool {
+		return result.TeamRatings[i].AttackRating > result.TeamRatings[j].AttackRating
+	})
 
 	// Display results
-	fmt.Printf("\n📊 Team Ratings & Predictions\n")
-	fmt.Printf("=============================\n")
-	fmt.Printf("%-20s %8s %8s %8s %8s %8s\n", "Team", "Attack", "Defense", "Points", "Winner", "Releg")
+	fmt.Printf("\n📊 Team Ratings\n")
+	fmt.Printf("===============\n")
+	fmt.Printf("%-20s %8s %8s %8s %8s\n", "Team", "Attack", "Defense", "λ_Home", "λ_Away")
+	fmt.Printf("%-20s %8s %8s %8s %8s\n", "----", "------", "-------", "------", "------")
 
 	for _, rating := range result.TeamRatings {
-		expectedPts := result.ExpectedPoints[rating.Team]
-		posProbs := result.PositionProbs[rating.Team]
-		
-		winnerProb := 0.0
-		relegProb := 0.0
-		
-		if len(posProbs) > 0 {
-			winnerProb = posProbs[0] * 100
-		}
-		if len(posProbs) >= 3 {
-			for i := len(posProbs) - 3; i < len(posProbs); i++ {
-				relegProb += posProbs[i] * 100
-			}
-		}
-
-		fmt.Printf("%-20s %8.3f %8.3f %8.1f %7.1f%% %6.1f%%\n",
+		fmt.Printf("%-20s %8.3f %8.3f %8.2f %8.2f\n",
 			rating.Team,
 			rating.AttackRating,
 			rating.DefenseRating,
-			expectedPts,
-			winnerProb,
-			relegProb,
+			math.Exp(rating.LambdaHome),
+			math.Exp(rating.LambdaAway),
 		)
 	}
 
-	// Display market prices
-	fmt.Printf("\n💰 Market Prices\n")
-	fmt.Printf("================\n")
-	for marketName, price := range result.MarketPrices {
-		fmt.Printf("%-30s: %.1f%%\n", marketName, price*100)
+	// Display summary statistics
+	fmt.Printf("\n📈 Summary Statistics\n")
+	fmt.Printf("====================\n")
+	
+	var attackSum, defenseSum float64
+	var attackMin, attackMax, defenseMin, defenseMax float64 = math.Inf(1), math.Inf(-1), math.Inf(1), math.Inf(-1)
+	
+	for _, rating := range result.TeamRatings {
+		attackSum += rating.AttackRating
+		defenseSum += rating.DefenseRating
+		
+		if rating.AttackRating < attackMin {
+			attackMin = rating.AttackRating
+		}
+		if rating.AttackRating > attackMax {
+			attackMax = rating.AttackRating
+		}
+		if rating.DefenseRating < defenseMin {
+			defenseMin = rating.DefenseRating
+		}
+		if rating.DefenseRating > defenseMax {
+			defenseMax = rating.DefenseRating
+		}
 	}
+	
+	numTeams := float64(len(result.TeamRatings))
+	
+	fmt.Printf("Attack ratings  - Mean: %6.3f, Range: [%6.3f, %6.3f]\n", 
+		attackSum/numTeams, attackMin, attackMax)
+	fmt.Printf("Defense ratings - Mean: %6.3f, Range: [%6.3f, %6.3f]\n", 
+		defenseSum/numTeams, defenseMin, defenseMax)
 
 	if *verbose {
 		// Output full results as JSON
@@ -133,7 +135,9 @@ func main() {
 		}
 	}
 
-	fmt.Printf("\n🎯 Demo completed successfully!\n")
+	fmt.Printf("\n🎯 MLE optimization completed successfully!\n")
+	fmt.Printf("   - Processed %d matches for %d teams\n", result.MatchesProcessed, len(result.TeamRatings))
+	fmt.Printf("   - Ratings represent log-scale parameters for Poisson goal distributions\n")
 }
 
 // generateSampleData creates sample historical match data for demonstration
@@ -210,33 +214,4 @@ func generateGoals(team string, isHome bool) int {
 		return int(strength + 0.5)
 	}
 	return int(strength)
-}
-
-// generateSampleMarkets creates sample betting markets
-func generateSampleMarkets(league string) []outrightsmle.Market {
-	// Sample teams for markets
-	teams := []string{
-		"Arsenal", "Chelsea", "Liverpool", "Manchester City", "Manchester United", "Tottenham",
-	}
-	
-	return []outrightsmle.Market{
-		{
-			Name:   "Premier League Winner",
-			Payoff: "1.0|19x0",
-			Teams:  teams,
-			Type:   "winner",
-		},
-		{
-			Name:   "Top 4 Finish",
-			Payoff: "1.0|16x0", 
-			Teams:  teams,
-			Type:   "top4",
-		},
-		{
-			Name:   "Relegation",
-			Payoff: "1.0|17x0",
-			Teams:  []string{"Burnley", "Sheffield United", "Luton"},
-			Type:   "relegation",
-		},
-	}
 }

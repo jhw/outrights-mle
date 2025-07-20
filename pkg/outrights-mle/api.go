@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-// Simulate runs the MLE-based football prediction simulation
+// OptimizeRatings runs the MLE-based team rating optimization
 // This is the main entry point for the outrights-mle package
-func Simulate(request SimulationRequest) (*SimulationResult, error) {
+func OptimizeRatings(request MLERequest) (*MLEResult, error) {
 	startTime := time.Now()
 
 	// Validate input
@@ -16,8 +16,8 @@ func Simulate(request SimulationRequest) (*SimulationResult, error) {
 	}
 
 	// Apply defaults if not provided
-	if request.Options == (SimOptions{}) {
-		request.Options = DefaultSimOptions()
+	if request.Options == (MLEOptions{}) {
+		request.Options = DefaultMLEOptions()
 	}
 
 	// Initialize MLE solver with historical data
@@ -42,27 +42,11 @@ func Simulate(request SimulationRequest) (*SimulationResult, error) {
 		teamRatings = append(teamRatings, rating)
 	}
 
-	// Initialize simulator with the optimized parameters
-	simulator := NewSimulator(params, request.Options)
-
-	// Run Monte Carlo simulation
-	positionProbs, expectedPoints := simulator.SimulateSeason(extractTeams(request.HistoricalData))
-
-	// Calculate market prices
-	marketPrices := make(map[string]float64)
-	for _, market := range request.Markets {
-		price := calculateMarketPrice(market, positionProbs)
-		marketPrices[market.Name] = price
-	}
-
-	result := &SimulationResult{
+	result := &MLEResult{
 		League:           request.League,
 		Season:           request.Season,
 		TeamRatings:      teamRatings,
 		MLEParams:        *params,
-		ExpectedPoints:   expectedPoints,
-		PositionProbs:    positionProbs,
-		MarketPrices:     marketPrices,
 		ProcessingTime:   time.Since(startTime),
 		MatchesProcessed: len(request.HistoricalData),
 	}
@@ -70,8 +54,8 @@ func Simulate(request SimulationRequest) (*SimulationResult, error) {
 	return result, nil
 }
 
-// validateRequest checks if the simulation request is valid
-func validateRequest(request SimulationRequest) error {
+// validateRequest checks if the MLE request is valid
+func validateRequest(request MLERequest) error {
 	if request.League == "" {
 		return fmt.Errorf("league is required")
 	}
@@ -117,59 +101,4 @@ func calculateExpectedGoals(attack, defense, homeAdv float64, isHome bool) float
 		lambda += homeAdv
 	}
 	return lambda
-}
-
-// calculateMarketPrice computes the fair price for a betting market
-func calculateMarketPrice(market Market, positionProbs map[string][]float64) float64 {
-	// This is a placeholder - actual implementation would depend on market type
-	// and payoff structure parsing
-	switch market.Type {
-	case "winner":
-		return calculateWinnerPrice(market, positionProbs)
-	case "top4":
-		return calculateTop4Price(market, positionProbs)
-	case "relegation":
-		return calculateRelegationPrice(market, positionProbs)
-	default:
-		return 0.0
-	}
-}
-
-// Placeholder market calculation functions
-func calculateWinnerPrice(market Market, positionProbs map[string][]float64) float64 {
-	totalProb := 0.0
-	for _, team := range market.Teams {
-		if probs, exists := positionProbs[team]; exists && len(probs) > 0 {
-			totalProb += probs[0] // Probability of finishing 1st
-		}
-	}
-	return totalProb
-}
-
-func calculateTop4Price(market Market, positionProbs map[string][]float64) float64 {
-	totalProb := 0.0
-	for _, team := range market.Teams {
-		if probs, exists := positionProbs[team]; exists && len(probs) >= 4 {
-			for i := 0; i < 4; i++ {
-				totalProb += probs[i] // Sum probabilities of finishing 1st-4th
-			}
-		}
-	}
-	return totalProb
-}
-
-func calculateRelegationPrice(market Market, positionProbs map[string][]float64) float64 {
-	totalProb := 0.0
-	for _, team := range market.Teams {
-		if probs, exists := positionProbs[team]; exists {
-			numPositions := len(probs)
-			if numPositions >= 3 {
-				// Sum probabilities of finishing in bottom 3
-				for i := numPositions - 3; i < numPositions; i++ {
-					totalProb += probs[i]
-				}
-			}
-		}
-	}
-	return totalProb
 }

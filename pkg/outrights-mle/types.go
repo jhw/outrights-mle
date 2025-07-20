@@ -33,66 +33,38 @@ type MLEParams struct {
 	Converged        bool               `json:"converged"`
 }
 
-// SimOptions configures the simulation parameters
-type SimOptions struct {
-	NPaths      int     `json:"npaths"`       // Number of simulation paths (default: 5000)
+// MLEOptions configures the MLE optimization parameters
+type MLEOptions struct {
 	MaxIter     int     `json:"max_iter"`     // Maximum MLE iterations (default: 200)
 	Tolerance   float64 `json:"tolerance"`    // Convergence tolerance (default: 1e-6)
 	LearningRate float64 `json:"learning_rate"` // Base learning rate (default: 0.1)
 	TimeDecay   float64 `json:"time_decay"`   // Time decay factor (default: 0.78)
 }
 
-// Market represents a betting market with payoff structure
-type Market struct {
-	Name      string   `json:"name"`
-	Payoff    string   `json:"payoff"`    // e.g., "1.0|19x0"
-	Teams     []string `json:"teams"`     // Teams included in market
-	Type      string   `json:"type"`      // winner, top4, relegation, etc.
+
+// MLEResult contains the output of MLE optimization
+type MLEResult struct {
+	League           string        `json:"league"`
+	Season           string        `json:"season"`
+	TeamRatings      []TeamRating  `json:"team_ratings"`
+	MLEParams        MLEParams     `json:"mle_params"`
+	ProcessingTime   time.Duration `json:"processing_time"`
+	MatchesProcessed int           `json:"matches_processed"`
 }
 
-// SimulationResult contains the output of a season simulation
-type SimulationResult struct {
-	League            string                    `json:"league"`
-	Season            string                    `json:"season"`
-	TeamRatings       []TeamRating              `json:"team_ratings"`
-	MLEParams         MLEParams                 `json:"mle_params"`
-	ExpectedPoints    map[string]float64        `json:"expected_points"`
-	PositionProbs     map[string][]float64      `json:"position_probs"`     // [team][position] = probability
-	MarketPrices      map[string]float64        `json:"market_prices"`      // [market_name] = probability
-	ProcessingTime    time.Duration             `json:"processing_time"`
-	MatchesProcessed  int                       `json:"matches_processed"`
-}
-
-// SimulationRequest contains all parameters needed for simulation
-type SimulationRequest struct {
-	League      string         `json:"league"`
-	Season      string         `json:"season"`
+// MLERequest contains all parameters needed for MLE optimization
+type MLERequest struct {
+	League         string        `json:"league"`
+	Season         string        `json:"season"`
 	HistoricalData []MatchResult `json:"historical_data"`
-	Markets     []Market       `json:"markets"`
-	Options     SimOptions     `json:"options"`
+	Options        MLEOptions    `json:"options"`
 }
 
-// TeamStats holds simulation results for a single team
-type TeamStats struct {
-	Name            string    `json:"name"`
-	ExpectedPoints  float64   `json:"expected_points"`
-	PositionProbs   []float64 `json:"position_probs"`   // Probability of finishing in each position
-	WinnerProb      float64   `json:"winner_prob"`
-	Top4Prob        float64   `json:"top4_prob"`
-	RelegationProb  float64   `json:"relegation_prob"`
-}
 
-// SimPoint tracks points for a team across simulation paths
-type SimPoint struct {
-	Team   string `json:"team"`
-	Points int    `json:"points"`
-	GD     int    `json:"goal_difference"`
-}
 
-// DefaultSimOptions returns default simulation options
-func DefaultSimOptions() SimOptions {
-	return SimOptions{
-		NPaths:       5000,
+// DefaultMLEOptions returns default MLE optimization options
+func DefaultMLEOptions() MLEOptions {
+	return MLEOptions{
 		MaxIter:      200,
 		Tolerance:    1e-6,
 		LearningRate: 0.1,

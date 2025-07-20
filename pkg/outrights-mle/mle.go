@@ -7,13 +7,13 @@ import (
 // MLESolver implements Maximum Likelihood Estimation for team ratings
 type MLESolver struct {
 	matches  []MatchResult
-	options  SimOptions
+	options  MLEOptions
 	teams    []string
 	teamIdx  map[string]int
 }
 
 // NewMLESolver creates a new MLE solver instance
-func NewMLESolver(matches []MatchResult, options SimOptions) *MLESolver {
+func NewMLESolver(matches []MatchResult, options MLEOptions) *MLESolver {
 	teams := extractTeams(matches)
 	teamIdx := make(map[string]int)
 	for i, team := range teams {
