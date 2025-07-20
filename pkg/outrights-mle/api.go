@@ -220,30 +220,39 @@ func ProcessMultipleLeagues(events []MatchResult, options MLEOptions) (*MultiLea
 	return result, nil
 }
 
-// calculateLeagueSeasonPoints calculates expected points for a full season within one league
-// Each team plays every other team both home and away
+// calculateLeagueSeasonPoints calculates expected points for a full season using Monte Carlo simulation
+// Each team plays every other team both home and away - matches gist simulation exactly
 func calculateLeagueSeasonPoints(teams []string, params MLEParams) map[string]float64 {
-	expectedPoints := make(map[string]float64)
+	// Use 5000 simulation paths like the gist
+	const nPaths = 5000
 	
-	// Initialize all teams to 0 points
-	for _, team := range teams {
-		expectedPoints[team] = 0.0
-	}
+	// Initialize simulation points tracker
+	simPoints := newSimPoints(teams, nPaths)
 	
-	// Create a temporary solver to use calculateExpectedMatchPoints
+	// Create a temporary solver for simulation
 	solver := &MLESolver{
 		params: &params,
 	}
 	
 	// Simulate full season: each team plays every other team home and away
+	matchCount := 0
 	for i, homeTeam := range teams {
 		for j, awayTeam := range teams {
 			if i != j { // Team doesn't play itself
-				homePoints, awayPoints := solver.calculateExpectedMatchPoints(homeTeam, awayTeam)
-				expectedPoints[homeTeam] += homePoints
-				expectedPoints[awayTeam] += awayPoints
+				simPoints.simulate(homeTeam, awayTeam, solver)
+				matchCount++
 			}
 		}
+	}
+	
+	// Calculate expected points from simulation (average across all paths)
+	expectedPoints := make(map[string]float64)
+	for i, teamName := range teams {
+		total := 0.0
+		for path := 0; path < nPaths; path++ {
+			total += simPoints.Points[i][path]
+		}
+		expectedPoints[teamName] = total / float64(nPaths)
 	}
 	
 	return expectedPoints
