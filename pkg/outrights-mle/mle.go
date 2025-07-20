@@ -302,3 +302,43 @@ func (s *MLESolver) getAdaptiveLearningRate(team string, baseLearningRate float6
 	}
 	return baseLearningRate
 }
+
+// calculateExpectedMatchPoints calculates expected points for home and away teams in a match
+// Copied exactly from gist lines 622-658
+func (s *MLESolver) calculateExpectedMatchPoints(homeTeam, awayTeam string) (float64, float64) {
+	homeAttack := s.params.AttackRatings[homeTeam]
+	homeDefense := s.params.DefenseRatings[homeTeam]
+	awayAttack := s.params.AttackRatings[awayTeam]
+	awayDefense := s.params.DefenseRatings[awayTeam]
+	
+	lambdaHome := math.Exp(homeAttack - awayDefense + s.params.HomeAdvantage)
+	lambdaAway := math.Exp(awayAttack - homeDefense)
+	
+	// Calculate probabilities for different outcomes
+	var homeWinProb, drawProb, awayWinProb float64
+	
+	// Sum probabilities for all possible score combinations
+	for homeGoals := 0; homeGoals <= 5; homeGoals++ {
+		for awayGoals := 0; awayGoals <= 5; awayGoals++ {
+			probHome := s.PoissonProb(lambdaHome, homeGoals)
+			probAway := s.PoissonProb(lambdaAway, awayGoals)
+			adjustment := s.DixonColesAdjustment(homeGoals, awayGoals, s.params.Rho)
+			
+			matchProb := probHome * probAway * adjustment
+			
+			if homeGoals > awayGoals {
+				homeWinProb += matchProb
+			} else if homeGoals == awayGoals {
+				drawProb += matchProb
+			} else {
+				awayWinProb += matchProb
+			}
+		}
+	}
+	
+	// Calculate expected points (3 for win, 1 for draw, 0 for loss)
+	homeExpectedPoints := 3*homeWinProb + 1*drawProb
+	awayExpectedPoints := 3*awayWinProb + 1*drawProb
+	
+	return homeExpectedPoints, awayExpectedPoints
+}

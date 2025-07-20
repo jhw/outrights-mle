@@ -15,11 +15,12 @@ type MatchResult struct {
 
 // TeamRating represents attack and defense ratings for a team
 type TeamRating struct {
-	Team          string  `json:"team"`
-	AttackRating  float64 `json:"attack_rating"`
-	DefenseRating float64 `json:"defense_rating"`
-	LambdaHome    float64 `json:"lambda_home"`    // Expected goals at home
-	LambdaAway    float64 `json:"lambda_away"`    // Expected goals away
+	Team                 string  `json:"team"`
+	AttackRating         float64 `json:"attack_rating"`
+	DefenseRating        float64 `json:"defense_rating"`
+	LambdaHome           float64 `json:"lambda_home"`           // Expected goals at home
+	LambdaAway           float64 `json:"lambda_away"`           // Expected goals away
+	ExpectedSeasonPoints float64 `json:"expected_season_points"` // Expected points over full season
 }
 
 // MLEParams holds the Maximum Likelihood Estimation parameters

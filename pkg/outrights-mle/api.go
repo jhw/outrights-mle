@@ -189,16 +189,28 @@ func ProcessMultipleLeagues(events []MatchResult, options MLEOptions) (*MultiLea
 			}
 		}
 		
-		// Filter ratings for this league
+		// Filter ratings for this league and calculate expected season points
+		var leagueTeams []string
 		for _, rating := range mlResult.TeamRatings {
 			if _, isTargetTeam := targetTeams[rating.Team]; isTargetTeam {
 				filteredRatings = append(filteredRatings, rating)
+				leagueTeams = append(leagueTeams, rating.Team)
 			}
 		}
 		
-		// Sort by attack rating for consistent display
+		// Calculate expected season points for teams in this league
+		expectedSeasonPoints := calculateLeagueSeasonPoints(leagueTeams, mlResult.MLEParams)
+		
+		// Update ratings with expected season points
+		for i := range filteredRatings {
+			if points, exists := expectedSeasonPoints[filteredRatings[i].Team]; exists {
+				filteredRatings[i].ExpectedSeasonPoints = points
+			}
+		}
+		
+		// Sort by expected season points (descending) for league table order
 		sort.Slice(filteredRatings, func(i, j int) bool {
-			return filteredRatings[i].AttackRating > filteredRatings[j].AttackRating
+			return filteredRatings[i].ExpectedSeasonPoints > filteredRatings[j].ExpectedSeasonPoints
 		})
 		
 		result.Leagues[league] = filteredRatings
@@ -206,5 +218,34 @@ func ProcessMultipleLeagues(events []MatchResult, options MLEOptions) (*MultiLea
 	
 	result.ProcessingTime = time.Since(startTime)
 	return result, nil
+}
+
+// calculateLeagueSeasonPoints calculates expected points for a full season within one league
+// Each team plays every other team both home and away
+func calculateLeagueSeasonPoints(teams []string, params MLEParams) map[string]float64 {
+	expectedPoints := make(map[string]float64)
+	
+	// Initialize all teams to 0 points
+	for _, team := range teams {
+		expectedPoints[team] = 0.0
+	}
+	
+	// Create a temporary solver to use calculateExpectedMatchPoints
+	solver := &MLESolver{
+		params: &params,
+	}
+	
+	// Simulate full season: each team plays every other team home and away
+	for i, homeTeam := range teams {
+		for j, awayTeam := range teams {
+			if i != j { // Team doesn't play itself
+				homePoints, awayPoints := solver.calculateExpectedMatchPoints(homeTeam, awayTeam)
+				expectedPoints[homeTeam] += homePoints
+				expectedPoints[awayTeam] += awayPoints
+			}
+		}
+	}
+	
+	return expectedPoints
 }
 

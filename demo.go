@@ -129,24 +129,26 @@ func main() {
 	fmt.Printf("✓ Log likelihood: %.2f\n", result.MLEParams.LogLikelihood)
 	fmt.Printf("✓ Home advantage: %.3f\n", result.MLEParams.HomeAdvantage)
 
-	// Sort teams by attack rating for better display
+	// Sort teams by expected season points for league table order
 	sort.Slice(result.TeamRatings, func(i, j int) bool {
-		return result.TeamRatings[i].AttackRating > result.TeamRatings[j].AttackRating
+		return result.TeamRatings[i].ExpectedSeasonPoints > result.TeamRatings[j].ExpectedSeasonPoints
 	})
 
 	// Display results
 	fmt.Printf("\n📊 Team Ratings\n")
 	fmt.Printf("===============\n")
-	fmt.Printf("%-20s %8s %8s %8s %8s\n", "Team", "Attack", "Defense", "λ_Home", "λ_Away")
-	fmt.Printf("%-20s %8s %8s %8s %8s\n", "----", "------", "-------", "------", "------")
+	fmt.Printf("%3s %-20s %8s %8s %8s %8s %8s\n", "Pos", "Team", "Attack", "Defense", "λ_Home", "λ_Away", "SeasonPts")
+	fmt.Printf("%3s %-20s %8s %8s %8s %8s %8s\n", "---", "----", "------", "-------", "------", "------", "---------")
 
-	for _, rating := range result.TeamRatings {
-		fmt.Printf("%-20s %8.3f %8.3f %8.2f %8.2f\n",
+	for i, rating := range result.TeamRatings {
+		fmt.Printf("%3d %-20s %8.3f %8.3f %8.2f %8.2f %8.1f\n",
+			i+1, // Position index starting from 1
 			rating.Team,
 			rating.AttackRating,
 			rating.DefenseRating,
 			rating.LambdaHome,  // Already exp(attack + homeAdv)
 			rating.LambdaAway,  // Already exp(attack)
+			rating.ExpectedSeasonPoints,
 		)
 	}
 
@@ -373,22 +375,24 @@ func displayTeamRatingsByLeague(teamRatingsByLeague map[string][]TeamRatingResul
 			continue
 		}
 
-		// Sort teams by attack rating (descending)
+		// Sort teams by expected season points (descending) for league table order
 		sort.Slice(ratings, func(i, j int) bool {
-			return ratings[i].TeamRating.AttackRating > ratings[j].TeamRating.AttackRating
+			return ratings[i].TeamRating.ExpectedSeasonPoints > ratings[j].TeamRating.ExpectedSeasonPoints
 		})
 
 		fmt.Printf("\n🏆 %s (%d teams):\n", league, len(ratings))
-		fmt.Printf("%-20s %8s %8s %8s %8s\n", "Team", "Attack", "Defense", "λ_Home", "λ_Away")
-		fmt.Printf("%-20s %8s %8s %8s %8s\n", "----", "------", "-------", "------", "------")
+		fmt.Printf("%3s %-20s %8s %8s %8s %8s %8s\n", "Pos", "Team", "Attack", "Defense", "λ_Home", "λ_Away", "SeasonPts")
+		fmt.Printf("%3s %-20s %8s %8s %8s %8s %8s\n", "---", "----", "------", "-------", "------", "------", "---------")
 
-		for _, rating := range ratings {
-			fmt.Printf("%-20s %8.3f %8.3f %8.2f %8.2f\n",
+		for i, rating := range ratings {
+			fmt.Printf("%3d %-20s %8.3f %8.3f %8.2f %8.2f %8.1f\n",
+				i+1, // Position index starting from 1
 				rating.TeamRating.Team,
 				rating.TeamRating.AttackRating,
 				rating.TeamRating.DefenseRating,
 				rating.TeamRating.LambdaHome,  // Already exp(attack + homeAdv)
 				rating.TeamRating.LambdaAway,  // Already exp(attack)
+				rating.TeamRating.ExpectedSeasonPoints,
 			)
 		}
 	}
