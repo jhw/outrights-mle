@@ -49,8 +49,17 @@ func main() {
 			log.Fatalf("Failed to load events data: %v", err)
 		}
 
+		// Load markets data
+		markets, err := loadMarketsFromFile("fixtures/markets.json")
+		if err != nil {
+			fmt.Printf("⚠️  Could not load markets file (%v), proceeding without markets\n", err)
+			markets = []outrightsmle.Market{} // Empty markets
+		} else {
+			fmt.Printf("✓ Loaded %d markets from fixtures/markets.json\n", len(markets))
+		}
+
 		// Run model and get teams by league
-		teamsByLeague, err := runMLEModel(events, *debug, *maxiter, *tolerance)
+		teamsByLeague, err := runMLEModel(events, markets, *debug, *maxiter, *tolerance)
 		if err != nil {
 			log.Fatalf("MLE model failed: %v", err)
 		}
@@ -329,6 +338,24 @@ func loadEventsFromFile(filename string) ([]outrightsmle.MatchResult, error) {
 	return events, nil
 }
 
+// loadMarketsFromFile loads markets from a JSON file
+func loadMarketsFromFile(filename string) ([]outrightsmle.Market, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("opening file %s: %w", filename, err)
+	}
+	defer file.Close()
+
+	var markets []outrightsmle.Market
+	decoder := json.NewDecoder(file)
+
+	if err := decoder.Decode(&markets); err != nil {
+		return nil, fmt.Errorf("decoding JSON: %w", err)
+	}
+
+	return markets, nil
+}
+
 // TeamResult holds team data with league information
 type TeamResult struct {
 	League string
@@ -338,7 +365,7 @@ type TeamResult struct {
 
 
 // runMLEModel processes all events using the API and returns teams grouped by league
-func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tolerance float64) (map[string][]TeamResult, error) {
+func runMLEModel(events []outrightsmle.MatchResult, markets []outrightsmle.Market, debug bool, maxiter int, tolerance float64) (map[string][]TeamResult, error) {
 	// Set up MLE options with custom SimParams
 	simParams := outrightsmle.DefaultSimParams()
 	simParams.MaxIterations = maxiter
@@ -350,7 +377,7 @@ func runMLEModel(events []outrightsmle.MatchResult, debug bool, maxiter int, tol
 	}
 
 	// Use the high-level API to run MLE optimization across all leagues
-	result, err := outrightsmle.RunMLESolver(events, options)
+	result, err := outrightsmle.RunMLESolver(events, markets, options)
 	if err != nil {
 		// Check if this is a wrapped validation error and provide helpful message
 		if strings.Contains(err.Error(), "league groups validation failed") {

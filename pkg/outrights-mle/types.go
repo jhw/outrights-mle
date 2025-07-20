@@ -93,6 +93,17 @@ type Event struct {
 	Score []int  `json:"score,omitempty"`
 }
 
+// Market represents a betting market (adapted from go-outrights)
+type Market struct {
+	Name         string    `json:"name"`
+	League       string    `json:"league"`          // League this market applies to
+	Payoff       string    `json:"payoff"`          // Payoff expression like "1|4x0.25|19x0"
+	ParsedPayoff []float64 `json:"-"`               // Parsed version, not serialized
+	Teams        []string  `json:"teams,omitempty"` // Computed teams for this market
+	Include      []string  `json:"include,omitempty"`
+	Exclude      []string  `json:"exclude,omitempty"`
+}
+
 
 
 // DefaultSimParams returns default simulation and MLE parameterization values

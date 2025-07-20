@@ -83,6 +83,7 @@ func validateRequest(request MLERequest) error {
 // MultiLeagueResult holds results for multiple leagues
 type MultiLeagueResult struct {
 	Leagues       map[string][]Team `json:"leagues"`        // league -> teams with all data
+	Markets       []Market          `json:"markets"`        // validated and initialized markets
 	LatestSeason  string            `json:"latest_season"`  
 	TotalMatches  int               `json:"total_matches"`
 	ProcessingTime time.Duration    `json:"processing_time"`
@@ -90,7 +91,7 @@ type MultiLeagueResult struct {
 
 // RunMLESolver runs MLE optimization across all leagues and returns organized results
 // This is the main high-level API for cross-league MLE optimization
-func RunMLESolver(events []MatchResult, options MLEOptions) (*MultiLeagueResult, error) {
+func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*MultiLeagueResult, error) {
 	startTime := time.Now()
 	
 	if len(events) == 0 {
@@ -134,8 +135,23 @@ func RunMLESolver(events []MatchResult, options MLEOptions) (*MultiLeagueResult,
 		}
 	}
 	
+	// Get current teams for market validation using our helper function
+	currentTeams := GetCurrentTeams(leagueGroups, eventsByLeague, latestSeason)
+	
+	// Validate and initialize markets
+	if len(markets) > 0 {
+		err := validateAndInitializeMarkets(markets, currentTeams, eventsByLeague, effectiveLatestSeason)
+		if err != nil {
+			return nil, fmt.Errorf("market validation failed: %w", err)
+		}
+		if options.Debug {
+			fmt.Printf("✅ Validated %d markets across leagues\n", len(markets))
+		}
+	}
+
 	result := &MultiLeagueResult{
 		Leagues:        make(map[string][]Team),
+		Markets:        markets,
 		LatestSeason:   effectiveLatestSeason,
 		TotalMatches:   len(events),
 		ProcessingTime: time.Since(startTime),
