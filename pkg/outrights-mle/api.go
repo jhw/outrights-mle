@@ -44,9 +44,19 @@ func OptimizeRatings(request MLERequest) (*MLEResult, error) {
 		teamRatings = append(teamRatings, rating)
 	}
 
+	// Set default values for cross-league processing
+	league := request.League
+	if league == "" {
+		league = "ALL"
+	}
+	season := request.Season  
+	if season == "" {
+		season = "ALL"
+	}
+	
 	result := &MLEResult{
-		League:           request.League,
-		Season:           request.Season,
+		League:           league,
+		Season:           season,
 		TeamRatings:      teamRatings,
 		MLEParams:        *params,
 		ProcessingTime:   time.Since(startTime),
@@ -58,10 +68,6 @@ func OptimizeRatings(request MLERequest) (*MLEResult, error) {
 
 // validateRequest checks if the MLE request is valid
 func validateRequest(request MLERequest) error {
-	if request.League == "" {
-		return fmt.Errorf("league is required")
-	}
-	
 	if len(request.HistoricalData) == 0 {
 		return fmt.Errorf("historical data is required")
 	}
@@ -146,11 +152,9 @@ func ProcessMultipleLeagues(events []MatchResult, options MLEOptions) (*MultiLea
 		fmt.Printf("\n🏈 Running single MLE optimization across ALL leagues (%d total events)...\n", len(events))
 	}
 	
-	// Create single MLE request for ALL events across ALL leagues
+	// Create single MLE request for ALL events across ALL leagues  
 	request := MLERequest{
-		League:         "ALL", // Indicate this is cross-league
-		Season:         latestSeason,
-		HistoricalData: events, // ALL events from ALL leagues
+		HistoricalData: events,
 		PromotedTeams:  promotedTeams,
 		LeagueGroups:   leagueGroups,
 		Options:        options,
