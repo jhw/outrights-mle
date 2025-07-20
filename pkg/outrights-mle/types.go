@@ -38,7 +38,6 @@ type MLEParams struct {
 type SimParams struct {
 	// Core MLE parameters
 	HomeAdvantage         float64 `json:"home_advantage"`          // Home team advantage (default: 0.3)
-	DixonColesRho         float64 `json:"dixon_coles_rho"`         // Dixon-Coles correlation parameter (default: -0.1)
 	
 	// Learning parameters
 	BaseLearningRate      float64 `json:"base_learning_rate"`      // Base learning rate for gradient ascent (default: 0.001)
@@ -90,7 +89,6 @@ func DefaultSimParams() *SimParams {
 	return &SimParams{
 		// Core MLE parameters
 		HomeAdvantage:         0.3,   // Home team advantage
-		DixonColesRho:        -0.1,   // Dixon-Coles correlation parameter
 		
 		// Learning parameters
 		BaseLearningRate:     0.001,  // Base learning rate for gradient ascent

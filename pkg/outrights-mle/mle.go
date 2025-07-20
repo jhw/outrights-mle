@@ -61,7 +61,7 @@ func (s *MLESolver) Optimize() (*MLEParams, error) {
 	// Initialize parameters
 	s.params = &MLEParams{
 		HomeAdvantage:  simParams.HomeAdvantage,  // From SimParams
-		Rho:           simParams.DixonColesRho,   // From SimParams
+		Rho:           -0.1,                      // Dixon-Coles parameter (standard value)
 		AttackRatings:  make(map[string]float64),
 		DefenseRatings: make(map[string]float64),
 	}
