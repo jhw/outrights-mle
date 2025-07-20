@@ -277,8 +277,24 @@ func (s *MLESolver) getTimeWeight(season string) float64 {
 	simParams := s.options.SimParams
 
 	// Calculate years since latest season in the data
-	latestYear := convertSeasonToYear(s.latestSeason)
-	seasonYear := convertSeasonToYear(season)
+	latestYear, err := convertSeasonToYear(s.latestSeason)
+	if err != nil {
+		// Log error and return no decay (weight = 1.0) as fallback
+		if s.options.Debug {
+			fmt.Printf("⚠️  Error parsing latest season %q: %v, using weight 1.0\n", s.latestSeason, err)
+		}
+		return 1.0
+	}
+	
+	seasonYear, err := convertSeasonToYear(season)
+	if err != nil {
+		// Log error and return no decay (weight = 1.0) as fallback  
+		if s.options.Debug {
+			fmt.Printf("⚠️  Error parsing season %q: %v, using weight 1.0\n", season, err)
+		}
+		return 1.0
+	}
+	
 	yearsAgo := float64(latestYear - seasonYear)
 	
 	// Apply exponential decay with configurable base and power

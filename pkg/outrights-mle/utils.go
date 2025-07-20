@@ -1,23 +1,24 @@
 package outrightsmle
 
+import (
+	"fmt"
+	"strconv"
+)
+
 // convertSeasonToYear converts season string to starting year
 // e.g., "2425" -> 2024, "2324" -> 2023
-func convertSeasonToYear(season string) int {
-	// Convert season string to starting year
+func convertSeasonToYear(season string) (int, error) {
 	if len(season) != 4 {
-		return 2014 // Default to oldest season
+		return 0, fmt.Errorf("season must be 4 digits, got %d characters: %q", len(season), season)
 	}
 	
-	// Parse first two digits and add 2000
-	year := 0
-	if season[0] >= '0' && season[0] <= '9' {
-		year += int(season[0]-'0') * 10
-	}
-	if season[1] >= '0' && season[1] <= '9' {
-		year += int(season[1] - '0')
+	// Parse the first two digits as the starting year (e.g., "23" from "2324")
+	yearSuffix, err := strconv.Atoi(season[:2])
+	if err != nil {
+		return 0, fmt.Errorf("invalid season format %q: first two characters must be digits", season)
 	}
 	
-	return 2000 + year
+	return 2000 + yearSuffix, nil
 }
 
 // Additional parsing/formatting utilities can be added here:
