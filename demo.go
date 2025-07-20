@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -15,29 +17,78 @@ import (
 func main() {
 	// Command line flags
 	var (
-		league     = flag.String("league", "ENG1", "League code (ENG1, ENG2, ENG3, ENG4)")
-		season     = flag.String("season", "2023-24", "Season identifier")
-		maxiter    = flag.Int("maxiter", 200, "Maximum MLE iterations")
-		tolerance  = flag.Float64("tolerance", 1e-6, "Convergence tolerance")
-		verbose    = flag.Bool("verbose", false, "Verbose output")
-		dataFile   = flag.String("data", "", "Path to historical match data JSON file")
+		league      = flag.String("league", "ENG1", "League code (ENG1, ENG2, ENG3, ENG4)")
+		season      = flag.String("season", "2023-24", "Season identifier")
+		maxiter     = flag.Int("maxiter", 200, "Maximum MLE iterations")
+		tolerance   = flag.Float64("tolerance", 1e-6, "Convergence tolerance")
+		verbose     = flag.Bool("verbose", false, "Verbose output")
+		dataFile    = flag.String("data", "", "Path to historical match data JSON file")
+		fetchEvents = flag.Bool("fetch-events", false, "Fetch events data from football-data.co.uk and save to fixtures/events.json")
 	)
 	flag.Parse()
 
 	fmt.Printf("🏈 Go Outrights MLE Demo\n")
 	fmt.Printf("========================\n\n")
 
+	// Handle fetch-events flag
+	if *fetchEvents {
+		fmt.Printf("🌐 Fetching events from football-data.co.uk...\n")
+		
+		events, err := FetchAllEvents()
+		if err != nil {
+			log.Fatalf("Failed to fetch events: %v", err)
+		}
+
+		// Save to fixtures/events.json
+		eventsFile := "fixtures/events.json"
+		if err := saveEventsToFile(events, eventsFile); err != nil {
+			log.Fatalf("Failed to save events: %v", err)
+		}
+
+		fmt.Printf("\n✅ Successfully saved %d events to %s\n", len(events), eventsFile)
+		return
+	}
+
 	// Set default file paths if not provided
 	if *dataFile == "" {
-		*dataFile = fmt.Sprintf("fixtures/%s-matches.json", *league)
+		*dataFile = "fixtures/events.json" // Use real data if available
+		
+		// Check if events file exists, otherwise use sample data
+		if _, err := os.Stat(*dataFile); os.IsNotExist(err) {
+			*dataFile = fmt.Sprintf("fixtures/%s-matches.json", *league)
+		}
 	}
 
 	// Load configuration and data
 	fmt.Printf("Loading data for %s season %s...\n", *league, *season)
 
-	// For demo purposes, create sample historical data
-	historicalData := generateSampleData(*league, *season)
-	fmt.Printf("✓ Generated %d sample matches\n", len(historicalData))
+	var historicalData []outrightsmle.MatchResult
+	var err error
+
+	// Try to load real data first
+	if *dataFile == "fixtures/events.json" {
+		historicalData, err = loadEventsFromFile(*dataFile)
+		if err != nil {
+			fmt.Printf("⚠️  Could not load events file (%v), generating sample data instead\n", err)
+			historicalData = generateSampleData(*league, *season)
+		} else {
+			// Filter for specific league if using real data
+			if *league != "" {
+				var filteredData []outrightsmle.MatchResult
+				for _, match := range historicalData {
+					if match.League == *league {
+						filteredData = append(filteredData, match)
+					}
+				}
+				historicalData = filteredData
+			}
+			fmt.Printf("✓ Loaded %d matches from %s\n", len(historicalData), *dataFile)
+		}
+	} else {
+		// Generate sample data
+		historicalData = generateSampleData(*league, *season)
+		fmt.Printf("✓ Generated %d sample matches\n", len(historicalData))
+	}
 
 	// Set up MLE optimization options
 	options := outrightsmle.MLEOptions{
@@ -214,4 +265,48 @@ func generateGoals(team string, isHome bool) int {
 		return int(strength + 0.5)
 	}
 	return int(strength)
+}
+
+// saveEventsToFile saves events to a JSON file
+func saveEventsToFile(events []outrightsmle.MatchResult, filename string) error {
+	// Create directories if they don't exist
+	dir := filepath.Dir(filename)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("creating directory %s: %w", dir, err)
+	}
+
+	// Open file for writing
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("creating file %s: %w", filename, err)
+	}
+	defer file.Close()
+
+	// Encode JSON with indentation for readability
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+
+	if err := encoder.Encode(events); err != nil {
+		return fmt.Errorf("encoding JSON: %w", err)
+	}
+
+	return nil
+}
+
+// loadEventsFromFile loads events from a JSON file
+func loadEventsFromFile(filename string) ([]outrightsmle.MatchResult, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("opening file %s: %w", filename, err)
+	}
+	defer file.Close()
+
+	var events []outrightsmle.MatchResult
+	decoder := json.NewDecoder(file)
+
+	if err := decoder.Decode(&events); err != nil {
+		return nil, fmt.Errorf("decoding JSON: %w", err)
+	}
+
+	return events, nil
 }
