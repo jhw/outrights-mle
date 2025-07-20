@@ -76,6 +76,20 @@ func validateRequest(request MLERequest) error {
 		return fmt.Errorf("insufficient teams: need at least 10 teams, got %d", len(teams))
 	}
 
+	// Validate handicaps against global team list
+	if len(request.Handicaps) > 0 {
+		teamSet := make(map[string]bool)
+		for _, team := range teams {
+			teamSet[team] = true
+		}
+		
+		for teamName := range request.Handicaps {
+			if !teamSet[teamName] {
+				return fmt.Errorf("handicaps contains unknown team: %s", teamName)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -93,7 +107,7 @@ type MultiLeagueResult struct {
 
 // RunMLESolver runs MLE optimization across all leagues and returns organized results
 // This is the main high-level API for cross-league MLE optimization
-func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*MultiLeagueResult, error) {
+func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions, handicaps map[string]int) (*MultiLeagueResult, error) {
 	startTime := time.Now()
 	
 	if len(events) == 0 {
@@ -174,6 +188,7 @@ func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*
 		HistoricalData: events,
 		LeagueChangeTeams: leagueChangeTeams,
 		LeagueGroups:   leagueGroups,
+		Handicaps:      handicaps,
 		Options:        options,
 	}
 	
@@ -229,7 +244,7 @@ func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*
 		
 		// Calculate expected season points for teams in this league (with simulation reuse)
 		seasonResult := calculateLeagueSeasonPointsWithSim(leagueTeams, mlResult.MLEParams, options.SimParams, 
-			events, league, effectiveLatestSeason)
+			events, league, effectiveLatestSeason, request.Handicaps)
 		expectedSeasonPoints := seasonResult.ExpectedPoints
 		
 		// Get current season matches for this league to build proper league table
@@ -242,7 +257,7 @@ func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*
 		
 		// Convert to Event format and calculate league table
 		currentSeasonEvents := convertMatchResultsToEvents(leagueEvents, effectiveLatestSeason)
-		leagueTable := calcLeagueTable(leagueTeams, currentSeasonEvents)
+		leagueTable := calcLeagueTable(leagueTeams, currentSeasonEvents, request.Handicaps)
 		
 		// Create unified Team objects with all data
 		var teams []Team

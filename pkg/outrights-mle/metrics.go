@@ -14,7 +14,7 @@ type SeasonPointsResult struct {
 // calculateLeagueSeasonPointsWithSim calculates expected points using realistic fixture approach
 // Returns both expected points and SimPoints for reuse in mark calculations
 func calculateLeagueSeasonPointsWithSim(teamNames []string, params MLEParams, simParams *SimParams, 
-	allEvents []MatchResult, league string, currentSeason string) *SeasonPointsResult {
+	allEvents []MatchResult, league string, currentSeason string, handicaps map[string]int) *SeasonPointsResult {
 	
 	// Use SimParams for simulation paths
 	nPaths := simParams.SimulationPaths
@@ -31,7 +31,7 @@ func calculateLeagueSeasonPointsWithSim(teamNames []string, params MLEParams, si
 	events := convertMatchResultsToEvents(leagueEvents, currentSeason)
 	
 	// Calculate current league table from existing matches
-	leagueTable := calcLeagueTable(teamNames, events)
+	leagueTable := calcLeagueTable(teamNames, events, handicaps)
 	
 	// Calculate remaining fixtures based on what's been played
 	rounds := getRounds(league)
@@ -73,8 +73,8 @@ func calculateLeagueSeasonPointsWithSim(teamNames []string, params MLEParams, si
 // calculateLeagueSeasonPoints calculates expected points using realistic fixture approach
 // Wrapper for backward compatibility
 func calculateLeagueSeasonPoints(teamNames []string, params MLEParams, simParams *SimParams, 
-	allEvents []MatchResult, league string, currentSeason string) map[string]float64 {
-	result := calculateLeagueSeasonPointsWithSim(teamNames, params, simParams, allEvents, league, currentSeason)
+	allEvents []MatchResult, league string, currentSeason string, handicaps map[string]int) map[string]float64 {
+	result := calculateLeagueSeasonPointsWithSim(teamNames, params, simParams, allEvents, league, currentSeason, handicaps)
 	return result.ExpectedPoints
 }
 

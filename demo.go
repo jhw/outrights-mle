@@ -35,6 +35,7 @@ func main() {
 		leagueChangeLearningRate = flag.Float64("league-change-learning-rate", 2.0, "Enhancement multiplier for teams that changed leagues")
 		simulationPaths        = flag.Int("simulation-paths", 5000, "Monte Carlo simulation paths")
 		homeAdvantage          = flag.Float64("home-advantage", 0.3, "Home team advantage")
+		handicaps              = flag.String("handicaps", "", "Handicaps as JSON (e.g., '{\"TeamName\":10,\"OtherTeam\":-5}')")
 	)
 	flag.Parse()
 
@@ -69,11 +70,17 @@ func main() {
 			fmt.Printf("✓ Loaded %d markets from fixtures/markets.json\n", len(markets))
 		}
 
+		// Parse handicaps from JSON string
+		handicapsMap, err := parseHandicaps(*handicaps)
+		if err != nil {
+			log.Fatalf("Failed to parse handicaps: %v", err)
+		}
+
 		// Create SimParams with flag overrides
 		simParams := createSimParamsFromFlags(*maxiter, *tolerance, *timeDecayBase, *timeDecayFactor, *learningRateBase, *leagueChangeLearningRate, *simulationPaths, *homeAdvantage)
 		
 		// Run model and get teams by league
-		teamsByLeague, result, err := runMLEModel(events, markets, *debug, simParams)
+		teamsByLeague, result, err := runMLEModel(events, markets, *debug, simParams, handicapsMap)
 		if err != nil {
 			log.Fatalf("MLE model failed: %v", err)
 		}
@@ -293,6 +300,21 @@ func createSimParamsFromFlags(maxiter int, tolerance, timeDecayBase, timeDecayFa
 	return simParams
 }
 
+// parseHandicaps parses a JSON string to a handicaps map
+func parseHandicaps(handicapsStr string) (map[string]int, error) {
+	handicapsMap := make(map[string]int)
+	if handicapsStr == "" {
+		return handicapsMap, nil
+	}
+	
+	err := json.Unmarshal([]byte(handicapsStr), &handicapsMap)
+	if err != nil {
+		return nil, fmt.Errorf("invalid handicaps JSON: %w", err)
+	}
+	
+	return handicapsMap, nil
+}
+
 // generateSampleData creates sample historical match data for demonstration
 func generateSampleData(league, season string) []outrightsmle.MatchResult {
 	// Sample Premier League teams
@@ -440,7 +462,7 @@ type TeamResult struct {
 
 
 // runMLEModel processes all events using the API and returns teams grouped by league
-func runMLEModel(events []outrightsmle.MatchResult, markets []outrightsmle.Market, debug bool, simParams *outrightsmle.SimParams) (map[string][]TeamResult, *outrightsmle.MultiLeagueResult, error) {
+func runMLEModel(events []outrightsmle.MatchResult, markets []outrightsmle.Market, debug bool, simParams *outrightsmle.SimParams, handicaps map[string]int) (map[string][]TeamResult, *outrightsmle.MultiLeagueResult, error) {
 	// Set up MLE options with provided SimParams
 	options := outrightsmle.MLEOptions{
 		SimParams: simParams,
@@ -448,7 +470,7 @@ func runMLEModel(events []outrightsmle.MatchResult, markets []outrightsmle.Marke
 	}
 
 	// Use the high-level API to run MLE optimization across all leagues
-	result, err := outrightsmle.RunMLESolver(events, markets, options)
+	result, err := outrightsmle.RunMLESolver(events, markets, options, handicaps)
 	if err != nil {
 		// Check if this is a wrapped validation error and provide helpful message
 		if strings.Contains(err.Error(), "league groups validation failed") {

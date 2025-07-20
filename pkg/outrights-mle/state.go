@@ -6,7 +6,7 @@ import (
 )
 
 // calcLeagueTable generates a league table from existing matches (adapted from go-outrights)
-func calcLeagueTable(teamNames []string, events []Event) []Team {
+func calcLeagueTable(teamNames []string, events []Event, handicaps map[string]int) []Team {
 	teams := make(map[string]*Team)
 	
 	// Initialize teams
@@ -16,6 +16,13 @@ func calcLeagueTable(teamNames []string, events []Event) []Team {
 			Points:         0,
 			GoalDifference: 0,
 			Played:         0,
+		}
+	}
+	
+	// Apply handicaps as initial points
+	for name, handicap := range handicaps {
+		if team, exists := teams[name]; exists {
+			team.Points += handicap
 		}
 	}
 	

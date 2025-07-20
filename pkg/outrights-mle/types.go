@@ -68,6 +68,7 @@ type MLERequest struct {
 	HistoricalData []MatchResult     `json:"historical_data"`
 	LeagueChangeTeams map[string]bool `json:"league_change_teams"` // Teams that changed leagues before season start
 	LeagueGroups   map[string][]string `json:"league_groups,omitempty"` // Optional: league -> teams mapping
+	Handicaps      map[string]int `json:"handicaps,omitempty"` // Initial points for teams (team name -> points)
 	Options        MLEOptions        `json:"options"`
 }
 
