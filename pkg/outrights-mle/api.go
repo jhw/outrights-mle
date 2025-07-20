@@ -2,6 +2,7 @@ package outrightsmle
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"time"
 )
@@ -95,13 +96,15 @@ func extractTeams(matches []MatchResult) []string {
 	return teams
 }
 
-// calculateExpectedGoals computes expected goals for a team
+// calculateExpectedGoals computes expected goals for a team - matches gist display calculation
 func calculateExpectedGoals(attack, defense, homeAdv float64, isHome bool) float64 {
-	lambda := attack - defense
+	// Match gist lines 447-448 and 467-468 exactly:
+	// LambdaHome: math.Exp(attack + 0.3)
+	// LambdaAway: math.Exp(attack) 
 	if isHome {
-		lambda += homeAdv
+		return math.Exp(attack + homeAdv)  // attack + 0.3
 	}
-	return lambda
+	return math.Exp(attack) // just attack
 }
 
 // MultiLeagueResult holds results for multiple leagues
@@ -159,11 +162,18 @@ func ProcessMultipleLeagues(events []MatchResult, options MLEOptions) (*MultiLea
 			fmt.Printf("\n🏈 Processing %s (%d events)...\n", league, len(leagueEvents))
 		}
 		
+		// Sort events by date for consistent processing order
+		sortedEvents := make([]MatchResult, len(leagueEvents))
+		copy(sortedEvents, leagueEvents)
+		sort.Slice(sortedEvents, func(i, j int) bool {
+			return sortedEvents[i].Date < sortedEvents[j].Date
+		})
+		
 		// Create MLE request for this league
 		request := MLERequest{
 			League:         league,
 			Season:         latestSeason,
-			HistoricalData: leagueEvents,
+			HistoricalData: sortedEvents,
 			PromotedTeams:  promotedTeams,
 			LeagueGroups:   leagueGroups,
 			Options:        options,

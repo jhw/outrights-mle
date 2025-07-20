@@ -57,7 +57,7 @@ func (s *MLESolver) Optimize() (*MLEParams, error) {
 		}
 	}
 
-	learningRate := 0.001
+	learningRate := 0.001 // Match gist exactly
 	prevLogLikelihood := s.CalculateLogLikelihood()
 	
 	if s.options.Debug {
@@ -284,9 +284,9 @@ func (s *MLESolver) convertSeasonToYear(season string) int {
 	return 2000 + year
 }
 
-// getAdaptiveLearningRate returns enhanced learning rate for teams with league changes
+// getAdaptiveLearningRate returns enhanced learning rate for teams with league changes  
 func (s *MLESolver) getAdaptiveLearningRate(team string, baseLearningRate float64, match MatchResult) float64 {
-	// Enhanced learning rate for teams that have changed leagues historically
+	// Copy the exact gist implementation
 	if s.promotedTeams[team] {
 		// Decay the enhancement over the current season (2425)
 		// Start with 3x rate, decay to 1x rate over the season
