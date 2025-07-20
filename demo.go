@@ -404,6 +404,11 @@ func runMLEModel(events []outrightsmle.MatchResult, markets []outrightsmle.Marke
 		teamsByLeague[league] = convertedTeams
 	}
 
+	// Display mark tables if markets were provided
+	if len(result.MarkValues) > 0 {
+		displayMarkTables(result)
+	}
+
 	return teamsByLeague, nil
 }
 
@@ -445,6 +450,101 @@ func displayTeamsByLeague(teamsByLeague map[string][]TeamResult, verbose bool) {
 			)
 		}
 	}
+}
+
+// displayMarkTables outputs mark value tables to console, sorted by expected season points
+func displayMarkTables(result *outrightsmle.MultiLeagueResult) {
+	leagues := []string{"ENG1", "ENG2", "ENG3", "ENG4"}
+	
+	for _, league := range leagues {
+		teams, hasTeams := result.Leagues[league]
+		markValues, hasMarkValues := result.MarkValues[league]
+		
+		if !hasTeams || !hasMarkValues || len(markValues) == 0 {
+			continue
+		}
+		
+		fmt.Printf("\n📊 MARK VALUES TABLE - %s\n", league)
+		fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+		
+		// Get market names for table headers
+		var markets []string
+		for marketName := range markValues {
+			markets = append(markets, marketName)
+		}
+		sort.Strings(markets)
+		
+		// Print header row
+		fmt.Printf("%-13s %7s", "Team", "ExpPts")
+		for _, market := range markets {
+			fmt.Printf(" %6s", compactMarketName(market))
+		}
+		fmt.Printf("\n")
+		
+		// Print separator
+		fmt.Printf("%-13s %7s", "─────────────", "───────")
+		for range markets {
+			fmt.Printf(" %6s", "──────")
+		}
+		fmt.Printf("\n")
+		
+		// Print data rows (teams already sorted by expected season points)
+		for _, team := range teams {
+			fmt.Printf("%-13s %7.1f", truncateString(team.Name, 13), team.ExpectedSeasonPoints)
+			
+			for _, market := range markets {
+				if teamMarks, exists := markValues[market]; exists {
+					if markValue, exists := teamMarks[team.Name]; exists {
+						fmt.Printf(" %6.3f", markValue)
+					} else {
+						fmt.Printf(" %6.3f", 0.000)
+					}
+				} else {
+					fmt.Printf(" %6.3f", 0.000)
+				}
+			}
+			fmt.Printf("\n")
+		}
+		
+		fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+	}
+}
+
+// compactMarketName creates compact market names by removing vowels and replacing numbers
+func compactMarketName(market string) string {
+	// Replace number words with digits
+	market = strings.ReplaceAll(market, "Two", "2")
+	market = strings.ReplaceAll(market, "Three", "3")
+	market = strings.ReplaceAll(market, "Four", "4")
+	market = strings.ReplaceAll(market, "Six", "6")
+	market = strings.ReplaceAll(market, "two", "2")
+	market = strings.ReplaceAll(market, "three", "3")
+	market = strings.ReplaceAll(market, "four", "4")
+	market = strings.ReplaceAll(market, "six", "6")
+	
+	// Remove vowels (a, e, i, o, u) - keep first character if it's a vowel
+	result := ""
+	for i, char := range market {
+		if i == 0 || (char != 'a' && char != 'e' && char != 'i' && char != 'o' && char != 'u' && 
+					  char != 'A' && char != 'E' && char != 'I' && char != 'O' && char != 'U') {
+			result += string(char)
+		}
+	}
+	
+	// Truncate to 6 characters max
+	if len(result) > 6 {
+		result = result[:6]
+	}
+	
+	return result
+}
+
+// truncateString truncates a string to maxLen characters
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
 }
 
 // getMapKeys returns the keys of a string map

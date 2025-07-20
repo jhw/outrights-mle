@@ -83,11 +83,12 @@ func validateRequest(request MLERequest) error {
 
 // MultiLeagueResult holds results for multiple leagues
 type MultiLeagueResult struct {
-	Leagues       map[string][]Team `json:"leagues"`        // league -> teams with all data
-	Markets       []Market          `json:"markets"`        // validated and initialized markets
-	LatestSeason  string            `json:"latest_season"`  
-	TotalMatches  int               `json:"total_matches"`
-	ProcessingTime time.Duration    `json:"processing_time"`
+	Leagues       map[string][]Team                          `json:"leagues"`        // league -> teams with all data
+	Markets       []Market                                   `json:"markets"`        // validated and initialized markets
+	MarkValues    map[string]map[string]map[string]float64   `json:"mark_values"`    // league -> market -> team -> mark_value
+	LatestSeason  string                                     `json:"latest_season"`  
+	TotalMatches  int                                        `json:"total_matches"`
+	ProcessingTime time.Duration                             `json:"processing_time"`
 }
 
 // RunMLESolver runs MLE optimization across all leagues and returns organized results
@@ -153,6 +154,7 @@ func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*
 	result := &MultiLeagueResult{
 		Leagues:        make(map[string][]Team),
 		Markets:        markets,
+		MarkValues:     make(map[string]map[string]map[string]float64),
 		LatestSeason:   effectiveLatestSeason,
 		TotalMatches:   len(events),
 		ProcessingTime: time.Since(startTime),
@@ -225,9 +227,10 @@ func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*
 			}
 		}
 		
-		// Calculate expected season points for teams in this league
-		expectedSeasonPoints := calculateLeagueSeasonPoints(leagueTeams, mlResult.MLEParams, options.SimParams, 
+		// Calculate expected season points for teams in this league (with simulation reuse)
+		seasonResult := calculateLeagueSeasonPointsWithSim(leagueTeams, mlResult.MLEParams, options.SimParams, 
 			events, league, effectiveLatestSeason)
+		expectedSeasonPoints := seasonResult.ExpectedPoints
 		
 		// Get current season matches for this league to build proper league table
 		var leagueEvents []MatchResult
@@ -271,6 +274,18 @@ func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions) (*
 		})
 		
 		result.Leagues[league] = teams
+		
+		// Calculate mark values using the same simulation (reuse for performance)
+		if len(markets) > 0 && seasonResult.SimPoints != nil {
+			leagueMarkValues := calculateMarkValues(seasonResult.SimPoints, markets, league)
+			if len(leagueMarkValues) > 0 {
+				result.MarkValues[league] = leagueMarkValues
+				if options.Debug {
+					fmt.Printf("📊 Calculated mark values for %d markets in %s\n", len(leagueMarkValues), league)
+				}
+				
+			}
+		}
 	}
 	
 	result.ProcessingTime = time.Since(startTime)
@@ -306,4 +321,14 @@ func getRounds(league string) int {
 	}
 	return 1
 }
+
+
+// truncateString truncates a string to maxLen characters
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
+}
+
 
