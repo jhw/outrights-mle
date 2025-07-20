@@ -1,0 +1,293 @@
+[
+  {
+    "name": "Winner",
+    "payoff": "1|19x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/winner",
+    "league": "ENG1"
+  },
+  {
+    "name": "Without Big Seven",
+    "exclude": [
+      "Arsenal",
+      "Chelsea",
+      "Liverpool",
+      "Man City",
+      "Man United",
+      "Newcastle",
+      "Tottenham"
+    ],
+    "payoff": "1|12x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/w-o-big-7",
+    "league": "ENG1"
+  },
+  {
+    "name": "Top Two",
+    "payoff": "2x1|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-2-finish",
+    "league": "ENG1"
+  },
+  {
+    "name": "Top Three",
+    "payoff": "3x1|17x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-3-finish",
+    "league": "ENG1"
+  },
+  {
+    "name": "Top Four",
+    "payoff": "4x1|16x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-4-finish",
+    "league": "ENG1"
+  },
+  {
+    "name": "Outside Top Four",
+    "payoff": "4x0|16x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-finish-outside-the-top-4",
+    "league": "ENG1"
+  },
+  {
+    "name": "Top Six",
+    "payoff": "6x1|14x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-6-finish",
+    "league": "ENG1"
+  },
+  {
+    "name": "Outside Top Six",
+    "payoff": "6x0|14x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-finish-outside-the-top-6",
+    "league": "ENG1"
+  },
+  {
+    "name": "Top Seven",
+    "payoff": "7x1|13x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-7-finish",
+    "league": "ENG1"
+  },
+  {
+    "name": "Top Half",
+    "payoff": "10x1|10x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-finish-in-top-half",
+    "league": "ENG1"
+  },
+  {
+    "name": "Bottom Half",
+    "payoff": "10x0|10x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-finish-in-bottom-half",
+    "league": "ENG1"
+  },
+  {
+    "name": "Relegation",
+    "payoff": "17x0|3x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/relegation",
+    "league": "ENG1"
+  },
+  {
+    "name": "To Stay Up",
+    "payoff": "17x1|3x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-stay-up",
+    "league": "ENG1"
+  },
+  {
+    "name": "Bottom",
+    "payoff": "19x0|1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/to-finish-bottom",
+    "league": "ENG1"
+  },
+  {
+    "name": "Top London Club",
+    "include": [
+      "Arsenal",
+      "Brentford",
+      "Chelsea",
+      "Crystal Palace",
+      "Fulham",
+      "Tottenham",
+      "West Ham"
+    ],
+    "payoff": "1|6x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/top-london-club",
+    "league": "ENG1"
+  },
+  {
+    "name": "Without Man City",
+    "exclude": [
+      "Man City"
+    ],
+    "payoff": "1|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/premier-league/w-o-man-city",
+    "league": "ENG1"
+  },
+  {
+    "name": "Winner",
+    "payoff": "1|23x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/winner",
+    "league": "ENG2"
+  },
+  {
+    "name": "Top Two",
+    "payoff": "2x1|22x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/top-2-finish",
+    "league": "ENG2"
+  },
+  {
+    "name": "Top Three",
+    "payoff": "3x1|21x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/top-3-finish",
+    "league": "ENG2"
+  },
+  {
+    "name": "Promotion",
+    "payoff": "2x1|4x0.25|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/promotion",
+    "league": "ENG2"
+  },
+  {
+    "name": "To Make The Playoffs",
+    "payoff": "2x0|4x0.25|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/to-make-the-playoffs",
+    "league": "ENG2"
+  },
+  {
+    "name": "Top Six",
+    "payoff": "6x1|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/top-6-finish",
+    "league": "ENG2"
+  },
+  {
+    "name": "Top Half",
+    "payoff": "12x1|12x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/to-finish-in-top-half",
+    "league": "ENG2"
+  },
+  {
+    "name": "Bottom Half",
+    "payoff": "12x0|12x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/to-finish-in-bottom-half",
+    "league": "ENG2"
+  },
+  {
+    "name": "Relegation",
+    "payoff": "21x0|3x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/relegation",
+    "league": "ENG2"
+  },
+  {
+    "name": "Bottom",
+    "payoff": "23x0|1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/championship/to-finish-bottom",
+    "league": "ENG2"
+  },
+  {
+    "name": "Winner",
+    "payoff": "1|23x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-1/english-league-one/winner",
+    "league": "ENG3"
+  },
+  {
+    "name": "Top Two",
+    "payoff": "2x1|22x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-1/english-league-one/top-2-finish",
+    "league": "ENG3"
+  },
+  {
+    "name": "Top Three",
+    "payoff": "3x1|21x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-1/english-league-one/top-3-finish",
+    "league": "ENG3"
+  },
+  {
+    "name": "Promotion",
+    "payoff": "2x1|4x0.25|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-1/english-league-one/promotion",
+    "league": "ENG3"
+  },
+  {
+    "name": "To Make The Playoffs",
+    "payoff": "2x0|4x1|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-1/english-league-one/to-make-the-playoffs",
+    "league": "ENG3"
+  },
+  {
+    "name": "Top Six",
+    "payoff": "6x1|18x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-1/english-league-one/top-6-finish",
+    "league": "ENG3"
+  },
+  {
+    "name": "Top Half",
+    "payoff": "12x1|12x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-1/english-league-one/to-finish-in-top-half",
+    "league": "ENG3"
+  },
+  {
+    "name": "Bottom Half",
+    "payoff": "12x0|12x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-1/english-league-one/to-finish-in-bottom-half",
+    "league": "ENG3"
+  },
+  {
+    "name": "Relegation",
+    "payoff": "20x0|4x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-1/english-league-one/relegation",
+    "league": "ENG3"
+  },
+  {
+    "name": "Bottom",
+    "payoff": "23x0|1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-1/english-league-one/to-finish-bottom",
+    "league": "ENG3"
+  },
+  {
+    "name": "Winner",
+    "payoff": "1|23x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/winner",
+    "league": "ENG4"
+  },
+  {
+    "name": "Top Three",
+    "payoff": "3x1|21x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/top-3-finish",
+    "league": "ENG4"
+  },
+  {
+    "name": "Promotion",
+    "payoff": "3x1|4x0.25|17x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/promotion",
+    "league": "ENG4"
+  },
+  {
+    "name": "To Make The Playoffs",
+    "payoff": "3x0|4x1|17x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/to-make-the-playoffs",
+    "league": "ENG4"
+  },
+  {
+    "name": "Top Seven",
+    "payoff": "7x1|17x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/top-7-finish",
+    "league": "ENG4"
+  },
+  {
+    "name": "Top Half",
+    "payoff": "12x1|12x0",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/to-finish-in-top-half",
+    "league": "ENG4"
+  },
+  {
+    "name": "Bottom Half",
+    "payoff": "12x0|12x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/to-finish-in-bottom-half",
+    "league": "ENG4"
+  },
+  {
+    "name": "Relegation",
+    "payoff": "22x0|2x1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/relegation",
+    "league": "ENG4"
+  },
+  {
+    "name": "Bottom",
+    "payoff": "23x0|1",
+    "oddscheckerUrl": "https://www.oddschecker.com/football/english/league-2/england-league-two/to-finish-bottom",
+    "league": "ENG4"
+  }
+]
