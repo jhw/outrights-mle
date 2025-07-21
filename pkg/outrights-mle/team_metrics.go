@@ -34,7 +34,7 @@ func calculateLeagueSeasonPointsWithSim(teamNames []string, params MLEParams, si
 	remainingFixtures := calcRemainingFixtures(teamNames, events, rounds)
 	
 	// Initialize simulation points tracker with current league table
-	simPoints := newSimPointsFromLeagueTable(leagueTable, nPaths, simParams.GoalDifferenceEffect)
+	simPoints := newSimPointsFromLeagueTable(leagueTable, nPaths)
 	
 	// Create a temporary solver for simulation with SimParams
 	solver := &MLESolver{
@@ -75,23 +75,27 @@ func calculateLeagueSeasonPoints(teamNames []string, params MLEParams, simParams
 }
 
 // newSimPointsFromLeagueTable initializes SimPoints with current league table points (adapted from go-outrights)
-func newSimPointsFromLeagueTable(leagueTable []Team, nPaths int, goalDifferenceEffect float64) *SimPoints {
+func newSimPointsFromLeagueTable(leagueTable []Team, nPaths int) *SimPoints {
 	sp := &SimPoints{
-		NPaths:        nPaths,
-		TeamNames:     make([]string, len(leagueTable)),
-		Points:        make([][]float64, len(leagueTable)),
-		positionCache: make(map[string]map[string][]float64),
+		NPaths:         nPaths,
+		TeamNames:      make([]string, len(leagueTable)),
+		Points:         make([][]float64, len(leagueTable)),
+		GoalDifference: make([][]float64, len(leagueTable)),
+		positionCache:  make(map[string]map[string][]float64),
 	}
 	
 	for i, team := range leagueTable {
 		sp.TeamNames[i] = team.Name
 		sp.Points[i] = make([]float64, nPaths)
+		sp.GoalDifference[i] = make([]float64, nPaths)
 		
-		// Initialize with current points plus goal difference adjustments
-		pointsWithAdjustments := float64(team.Points) + goalDifferenceEffect*float64(team.GoalDifference)
+		// Initialize with current league table data (points and goal difference separately)
+		currentPoints := float64(team.Points)
+		currentGoalDiff := float64(team.GoalDifference)
 		
 		for j := 0; j < nPaths; j++ {
-			sp.Points[i][j] = pointsWithAdjustments
+			sp.Points[i][j] = currentPoints
+			sp.GoalDifference[i][j] = currentGoalDiff
 		}
 	}
 	

@@ -8,31 +8,34 @@ import (
 	"time"
 )
 
-// Note: GDMultiplier moved to SimParams.GoalDifferenceEffect
 
 type SimPoints struct {
-	NPaths    int
-	TeamNames []string
-	Points    [][]float64
+	NPaths         int
+	TeamNames      []string
+	Points         [][]float64  // Match points (3/1/0) per team per simulation path
+	GoalDifference [][]float64  // Goal difference per team per simulation path
 	// Cache for position probabilities to avoid expensive recalculations
 	positionCache map[string]map[string][]float64 // sortedTeamsKey -> teamName -> probabilities
 }
 
 func newSimPoints(teamNames []string, nPaths int) *SimPoints {
 	sp := &SimPoints{
-		NPaths:        nPaths,
-		TeamNames:     make([]string, len(teamNames)),
-		Points:        make([][]float64, len(teamNames)),
-		positionCache: make(map[string]map[string][]float64),
+		NPaths:         nPaths,
+		TeamNames:      make([]string, len(teamNames)),
+		Points:         make([][]float64, len(teamNames)),
+		GoalDifference: make([][]float64, len(teamNames)),
+		positionCache:  make(map[string]map[string][]float64),
 	}
 	
 	for i, teamName := range teamNames {
 		sp.TeamNames[i] = teamName
 		sp.Points[i] = make([]float64, nPaths)
+		sp.GoalDifference[i] = make([]float64, nPaths)
 		
-		// Initialize all paths to 0 points
+		// Initialize all paths to 0
 		for j := 0; j < nPaths; j++ {
 			sp.Points[i][j] = 0.0
+			sp.GoalDifference[i][j] = 0.0
 		}
 	}
 	
@@ -87,14 +90,17 @@ func (sp *SimPoints) simulate(homeTeam, awayTeam string, solver *MLESolver) {
 			awayPoints = 3.0
 		}
 		
-		// Add goal difference effect using SimParams
-		simParams := solver.options.SimParams
-		
+		// Track points and goal difference separately
 		homeGD := float64(homeGoals - awayGoals)
 		awayGD := float64(awayGoals - homeGoals)
 		
-		sp.Points[homeIdx][path] += homePoints + simParams.GoalDifferenceEffect*homeGD
-		sp.Points[awayIdx][path] += awayPoints + simParams.GoalDifferenceEffect*awayGD
+		// Add match points (3/1/0 only)
+		sp.Points[homeIdx][path] += homePoints
+		sp.Points[awayIdx][path] += awayPoints
+		
+		// Track goal difference separately for tiebreaking
+		sp.GoalDifference[homeIdx][path] += homeGD
+		sp.GoalDifference[awayIdx][path] += awayGD
 	}
 }
 
@@ -128,10 +134,12 @@ func (sp *SimPoints) positionProbabilities(teamNames []string) map[string][]floa
 		return make(map[string][]float64)
 	}
 	
-	// Extract points for selected teams
+	// Extract points and goal difference for selected teams
 	selectedPoints := make([][]float64, len(selectedIndices))
+	selectedGoalDiff := make([][]float64, len(selectedIndices))
 	for i, idx := range selectedIndices {
 		selectedPoints[i] = sp.Points[idx]
+		selectedGoalDiff[i] = sp.GoalDifference[idx]
 	}
 	
 	// Calculate positions for each path
@@ -141,29 +149,42 @@ func (sp *SimPoints) positionProbabilities(teamNames []string) map[string][]floa
 	}
 	
 	for path := 0; path < sp.NPaths; path++ {
-		// Create array of team points for this path
-		teamPoints := make([]struct {
-			TeamIndex int
-			Points    float64
+		// Create array of team data for this path
+		teamData := make([]struct {
+			TeamIndex      int
+			Points         float64
+			GoalDifference float64
 		}, len(selectedIndices))
 		
 		for i := range selectedIndices {
-			teamPoints[i] = struct {
-				TeamIndex int
-				Points    float64
+			teamData[i] = struct {
+				TeamIndex      int
+				Points         float64
+				GoalDifference float64
 			}{
-				TeamIndex: i,
-				Points:    selectedPoints[i][path],
+				TeamIndex:      i,
+				Points:         selectedPoints[i][path],
+				GoalDifference: selectedGoalDiff[i][path],
 			}
 		}
 		
-		// Sort by points (descending) to get positions
-		sort.Slice(teamPoints, func(i, j int) bool {
-			return teamPoints[i].Points > teamPoints[j].Points
+		// Sort by points (descending), with goal difference as tiny tiebreaker
+		// Goal difference tiebreaker factor: 0.0001 (small enough to never exceed 1 point)
+		sort.Slice(teamData, func(i, j int) bool {
+			teamI := teamData[i]
+			teamJ := teamData[j]
+			
+			// Primary: sort by points (descending)
+			if teamI.Points != teamJ.Points {
+				return teamI.Points > teamJ.Points
+			}
+			
+			// Tiebreaker: sort by goal difference (descending) with tiny factor
+			return teamI.GoalDifference > teamJ.GoalDifference
 		})
 		
 		// Assign positions (0 = first place, 1 = second place, etc.)
-		for pos, team := range teamPoints {
+		for pos, team := range teamData {
 			positions[team.TeamIndex][path] = pos
 		}
 	}
