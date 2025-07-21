@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	outrightsmle "github.com/jhw/go-outrights-mle/pkg/outrights-mle"
 )
@@ -111,30 +110,25 @@ func main() {
 	var historicalData []outrightsmle.MatchResult
 	var err error
 
-	// Try to load real data first
-	if *dataFile == "fixtures/events.json" {
-		historicalData, err = loadEventsFromFile(*dataFile)
-		if err != nil {
-			fmt.Printf("⚠️  Could not load events file (%v), generating sample data instead\n", err)
-			historicalData = generateSampleData(*league, *season)
-		} else {
-			// Filter for specific league if using real data
-			if *league != "" {
-				var filteredData []outrightsmle.MatchResult
-				for _, match := range historicalData {
-					if match.League == *league {
-						filteredData = append(filteredData, match)
-					}
-				}
-				historicalData = filteredData
-			}
-			fmt.Printf("✓ Loaded %d matches from %s\n", len(historicalData), *dataFile)
-		}
-	} else {
-		// Generate sample data
-		historicalData = generateSampleData(*league, *season)
-		fmt.Printf("✓ Generated %d sample matches\n", len(historicalData))
+	// Load historical match data
+	historicalData, err = loadEventsFromFile(*dataFile)
+	if err != nil {
+		fmt.Printf("❌ Error loading events file: %v\n", err)
+		fmt.Printf("💡 Try running with --fetch-events to download fresh data\n")
+		return
 	}
+	
+	// Filter for specific league if requested
+	if *league != "" {
+		var filteredData []outrightsmle.MatchResult
+		for _, match := range historicalData {
+			if match.League == *league {
+				filteredData = append(filteredData, match)
+			}
+		}
+		historicalData = filteredData
+	}
+	fmt.Printf("✓ Loaded %d matches from %s\n", len(historicalData), *dataFile)
 
 	// Create SimParams with flag overrides
 	simParams := createSimParamsFromFlags(*maxiter, *tolerance, *timeDecayBase, *timeDecayFactor, *learningRateBase, *leagueChangeLearningRate, *simulationPaths, *homeAdvantage)
@@ -315,81 +309,6 @@ func parseHandicaps(handicapsStr string) (map[string]int, error) {
 	return handicapsMap, nil
 }
 
-// generateSampleData creates sample historical match data for demonstration
-func generateSampleData(league, season string) []outrightsmle.MatchResult {
-	// Sample Premier League teams
-	teams := []string{
-		"Arsenal", "Chelsea", "Liverpool", "Manchester City", "Manchester United",
-		"Tottenham", "Newcastle", "Brighton", "West Ham", "Crystal Palace",
-		"Fulham", "Brentford", "Wolves", "Everton", "Aston Villa",
-		"Nottingham Forest", "Bournemouth", "Sheffield United", "Burnley", "Luton",
-	}
-
-	var matches []outrightsmle.MatchResult
-	startDate := time.Date(2023, 8, 1, 0, 0, 0, 0, time.UTC)
-
-	// Generate matches for each round (38 rounds in Premier League)
-	for round := 0; round < 38; round++ {
-		matchDate := startDate.AddDate(0, 0, round*7)
-		
-		// Generate 10 matches per round (20 teams = 10 matches)
-		for i := 0; i < len(teams); i += 2 {
-			if i+1 < len(teams) {
-				// Simple score generation based on team strength
-				homeGoals := generateGoals(teams[i], true)
-				awayGoals := generateGoals(teams[i+1], false)
-				
-				matches = append(matches, outrightsmle.MatchResult{
-					Date:      matchDate.Format("2006-01-02"),
-					Season:    season,
-					League:    league,
-					HomeTeam:  teams[i],
-					AwayTeam:  teams[i+1],
-					HomeGoals: homeGoals,
-					AwayGoals: awayGoals,
-				})
-			}
-		}
-		
-		// Rotate teams for next round (round-robin)
-		if len(teams) > 1 {
-			teams = append([]string{teams[0]}, append(teams[2:], teams[1])...)
-		}
-	}
-
-	return matches
-}
-
-// generateGoals creates realistic goal counts based on team name (simplified)
-func generateGoals(team string, isHome bool) int {
-	// Simple strength mapping based on team names
-	strength := 1.0
-	
-	strongTeams := map[string]float64{
-		"Manchester City": 2.5,
-		"Arsenal":        2.3,
-		"Liverpool":      2.2,
-		"Chelsea":        1.8,
-		"Manchester United": 1.7,
-		"Tottenham":      1.6,
-		"Newcastle":      1.5,
-	}
-	
-	if s, exists := strongTeams[team]; exists {
-		strength = s
-	}
-	
-	// Home advantage
-	if isHome {
-		strength *= 1.3
-	}
-	
-	// Simple Poisson-like generation (very simplified)
-	if strength > 2.0 {
-		return int(strength + 0.5)
-	}
-	return int(strength)
-}
 
 // saveEventsToFile saves events to a JSON file
 func saveEventsToFile(events []outrightsmle.MatchResult, filename string) error {
