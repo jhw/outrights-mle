@@ -130,8 +130,8 @@ func (s *MLESolver) CalculateLogLikelihood() float64 {
 		lambdaHome := math.Exp(homeAttack - awayDefense + s.params.HomeAdvantage)
 		lambdaAway := math.Exp(awayAttack - homeDefense)
 		
-		probHome := s.PoissonProb(lambdaHome, match.HomeGoals)
-		probAway := s.PoissonProb(lambdaAway, match.AwayGoals)
+		probHome := PoissonProb(lambdaHome, match.HomeGoals)
+		probAway := PoissonProb(lambdaAway, match.AwayGoals)
 		
 		adjustment := s.DixonColesAdjustment(match.HomeGoals, match.AwayGoals, s.params.Rho)
 		
@@ -222,34 +222,6 @@ func (s *MLESolver) normalizeRatings() {
 	}
 }
 
-// PoissonProb calculates Poisson probability P(X = k) where X ~ Poisson(lambda)
-func (s *MLESolver) PoissonProb(lambda float64, k int) float64 {
-	if k < 0 {
-		return 0
-	}
-	if lambda <= 0 {
-		if k == 0 {
-			return 1.0
-		}
-		return 0
-	}
-	
-	// Use log space for numerical stability
-	logProb := float64(k)*math.Log(lambda) - lambda - s.logFactorial(k)
-	return math.Exp(logProb)
-}
-
-// logFactorial computes log(n!) for Poisson calculations
-func (s *MLESolver) logFactorial(n int) float64 {
-	if n <= 1 {
-		return 0
-	}
-	result := 0.0
-	for i := 2; i <= n; i++ {
-		result += math.Log(float64(i))
-	}
-	return result
-}
 
 // DixonColesAdjustment applies correction for correlation in low-scoring matches
 func (s *MLESolver) DixonColesAdjustment(homeGoals, awayGoals int, rho float64) float64 {
@@ -338,8 +310,8 @@ func (s *MLESolver) calculateExpectedMatchPoints(homeTeam, awayTeam string) (flo
 	// Sum probabilities for all possible score combinations
 	for homeGoals := 0; homeGoals <= simParams.GoalSimulationBound; homeGoals++ {
 		for awayGoals := 0; awayGoals <= simParams.GoalSimulationBound; awayGoals++ {
-			probHome := s.PoissonProb(lambdaHome, homeGoals)
-			probAway := s.PoissonProb(lambdaAway, awayGoals)
+			probHome := PoissonProb(lambdaHome, homeGoals)
+			probAway := PoissonProb(lambdaAway, awayGoals)
 			adjustment := s.DixonColesAdjustment(homeGoals, awayGoals, s.params.Rho)
 			
 			matchProb := probHome * probAway * adjustment

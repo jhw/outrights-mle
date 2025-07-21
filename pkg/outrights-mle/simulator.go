@@ -71,8 +71,8 @@ func (sp *SimPoints) simulate(homeTeam, awayTeam string, solver *MLESolver) {
 	// Simulate NPaths matches
 	for path := 0; path < sp.NPaths; path++ {
 		// Generate Poisson scores
-		homeGoals := poissonSample(lambdaHome)
-		awayGoals := poissonSample(lambdaAway)
+		homeGoals := PoissonSample(lambdaHome)
+		awayGoals := PoissonSample(lambdaAway)
 		
 		// Calculate points and goal difference
 		var homePoints, awayPoints float64
@@ -98,29 +98,6 @@ func (sp *SimPoints) simulate(homeTeam, awayTeam string, solver *MLESolver) {
 	}
 }
 
-// poissonSample generates a random sample from Poisson distribution
-// Copied exactly from gist simulator.go lines 184-204
-func poissonSample(lambda float64) int {
-	if lambda < 0 {
-		return 0
-	}
-	
-	// Use inverse transform sampling for small lambda
-	if lambda < 12 {
-		L := math.Exp(-lambda)
-		k := 0
-		p := 1.0
-		
-		for p > L {
-			k++
-			p *= rand.Float64()
-		}
-		return k - 1
-	}
-	
-	// Use normal approximation for large lambda
-	return int(math.Max(0, rand.NormFloat64()*math.Sqrt(lambda)+lambda+0.5))
-}
 
 // positionProbabilities calculates position probabilities for given teams with caching
 func (sp *SimPoints) positionProbabilities(teamNames []string) map[string][]float64 {
