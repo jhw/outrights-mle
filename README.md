@@ -52,7 +52,7 @@ func main() {
     }
 
     // Run MLE optimization
-    result, err := outrightsmle.OptimizeRatings(request)
+    result, err := outrightsmle.RunSimulation(request)
     if err != nil {
         log.Fatal(err)
     }
@@ -114,7 +114,7 @@ Implements the Maximum Likelihood Estimation algorithm:
 
 Main entry point with validation and orchestration:
 
-- `OptimizeRatings()`: Primary API function
+- `RunSimulation()`: Primary API function
 - Input validation and default parameter handling
 - Team extraction and rating calculation
 - Expected goals computation (λ_home, λ_away)

@@ -149,7 +149,7 @@ func main() {
 	fmt.Printf("- Convergence tolerance: %.2e\n", *tolerance)
 
 	// Run the MLE optimization
-	result, err := outrightsmle.OptimizeRatings(request)
+	result, err := outrightsmle.RunSimulation(request)
 	if err != nil {
 		log.Fatalf("MLE optimization failed: %v", err)
 	}

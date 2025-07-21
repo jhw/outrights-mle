@@ -8,9 +8,9 @@ import (
 	"time"
 )
 
-// OptimizeRatings runs the MLE-based team rating optimization
+// RunSimulation runs the MLE-based team rating optimization and simulation
 // This is the main entry point for the outrights-mle package
-func OptimizeRatings(request MLERequest) (*MLEResult, error) {
+func RunSimulation(request MLERequest) (*MLEResult, error) {
 	startTime := time.Now()
 
 	// Validate input
@@ -160,7 +160,7 @@ func RunMLESolver(events []MatchResult, markets []Market, options MLEOptions, ha
 	}
 	
 	// Run single MLE optimization across all leagues
-	mlResult, err := OptimizeRatings(request)
+	mlResult, err := RunSimulation(request)
 	if err != nil {
 		return nil, fmt.Errorf("MLE optimization failed: %w", err)
 	}
