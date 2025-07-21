@@ -44,7 +44,7 @@ type SimParams struct {
 	
 	// Simulation parameters
 	SimulationPaths       int     `json:"simulation_paths"`        // Monte Carlo simulation paths (default: 5000)
-	GoalSimulationBound   int     `json:"goal_simulation_bound"`   // Upper bound for goal calculations (default: 5)
+	GoalSimulationBound   int     `json:"goal_simulation_bound"`   // Upper bound for goal calculations (default: 10)
 }
 
 // MLEOptions configures the MLE optimization parameters
@@ -124,7 +124,7 @@ func DefaultSimParams() *SimParams {
 		
 		// Simulation parameters
 		SimulationPaths:      5000,   // Monte Carlo simulation paths
-		GoalSimulationBound:  5,      // Upper bound for goal calculations
+		GoalSimulationBound:  10,     // Upper bound for goal calculations
 	}
 }
 
