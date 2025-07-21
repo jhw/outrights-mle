@@ -49,8 +49,25 @@ func RunSimulation(request MLERequest) (*MLEResult, error) {
 		teams = append(teams, team)
 	}
 
+	// Generate match odds for all team combinations (n * (n-1) fixtures)
+	var matchOdds []MatchOdds
+	for i, homeTeam := range teams {
+		for j, awayTeam := range teams {
+			if i != j { // Skip same team vs same team
+				fixture := fmt.Sprintf("%s vs %s", homeTeam.Name, awayTeam.Name)
+				probabilities := solver.CalculateMatchProbabilities(homeTeam.Name, awayTeam.Name)
+				
+				matchOdds = append(matchOdds, MatchOdds{
+					Fixture:       fixture,
+					Probabilities: probabilities,
+				})
+			}
+		}
+	}
+
 	result := &MLEResult{
 		Teams:            teams,
+		MatchOdds:        matchOdds,
 		MLEParams:        *params,
 		ProcessingTime:   time.Since(startTime),
 		MatchesProcessed: len(request.HistoricalData),

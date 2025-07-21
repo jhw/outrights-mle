@@ -332,3 +332,41 @@ func (s *MLESolver) calculateExpectedMatchPoints(homeTeam, awayTeam string) (flo
 	
 	return homeExpectedPoints, awayExpectedPoints
 }
+
+// CalculateMatchProbabilities calculates 1X2 probabilities for a match between two teams
+func (s *MLESolver) CalculateMatchProbabilities(homeTeam, awayTeam string) [3]float64 {
+	homeAttack := s.params.AttackRatings[homeTeam]
+	homeDefense := s.params.DefenseRatings[homeTeam]
+	awayAttack := s.params.AttackRatings[awayTeam]
+	awayDefense := s.params.DefenseRatings[awayTeam]
+	
+	lambdaHome := math.Exp(homeAttack - awayDefense + s.params.HomeAdvantage)
+	lambdaAway := math.Exp(awayAttack - homeDefense)
+	
+	// Calculate probabilities for different outcomes
+	var homeWinProb, drawProb, awayWinProb float64
+	
+	// Get simulation parameters for goal simulation bound
+	simParams := s.options.SimParams
+
+	// Sum probabilities for all possible score combinations
+	for homeGoals := 0; homeGoals <= simParams.GoalSimulationBound; homeGoals++ {
+		for awayGoals := 0; awayGoals <= simParams.GoalSimulationBound; awayGoals++ {
+			probHome := PoissonProb(lambdaHome, homeGoals)
+			probAway := PoissonProb(lambdaAway, awayGoals)
+			adjustment := s.DixonColesAdjustment(homeGoals, awayGoals, s.params.Rho)
+			
+			matchProb := probHome * probAway * adjustment
+			
+			if homeGoals > awayGoals {
+				homeWinProb += matchProb
+			} else if homeGoals == awayGoals {
+				drawProb += matchProb
+			} else {
+				awayWinProb += matchProb
+			}
+		}
+	}
+	
+	return [3]float64{homeWinProb, drawProb, awayWinProb}
+}

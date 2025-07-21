@@ -54,9 +54,16 @@ type MLEOptions struct {
 }
 
 
+// MatchOdds represents the 1X2 probabilities for a fixture
+type MatchOdds struct {
+	Fixture     string    `json:"fixture"`      // "{Home} vs {Away}"
+	Probabilities [3]float64 `json:"probabilities"` // [home_win, draw, away_win]
+}
+
 // MLEResult contains the output of MLE optimization
 type MLEResult struct {
 	Teams            []Team        `json:"teams"`
+	MatchOdds        []MatchOdds   `json:"match_odds"`
 	MLEParams        MLEParams     `json:"mle_params"`
 	ProcessingTime   time.Duration `json:"processing_time"`
 	MatchesProcessed int           `json:"matches_processed"`
