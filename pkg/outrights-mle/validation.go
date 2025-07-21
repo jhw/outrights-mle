@@ -81,6 +81,40 @@ func ValidateLeagueGroups(leagueGroups map[string][]string, globalEntities Globa
 	return nil
 }
 
+// validateRequest checks if the MLE request is valid
+func validateRequest(request MLERequest) error {
+	if len(request.HistoricalData) == 0 {
+		return fmt.Errorf("historical data is required")
+	}
+
+	// Validate that we have enough data
+	if len(request.HistoricalData) < 100 {
+		return fmt.Errorf("insufficient historical data: need at least 100 matches, got %d", len(request.HistoricalData))
+	}
+
+	// Check for required teams
+	teams := ExtractTeams(request.HistoricalData)
+	if len(teams) < 10 {
+		return fmt.Errorf("insufficient teams: need at least 10 teams, got %d", len(teams))
+	}
+
+	// Validate handicaps against global team list
+	if len(request.Handicaps) > 0 {
+		teamSet := make(map[string]bool)
+		for _, team := range teams {
+			teamSet[team] = true
+		}
+		
+		for teamName := range request.Handicaps {
+			if !teamSet[teamName] {
+				return fmt.Errorf("handicaps contains unknown team: %s", teamName)
+			}
+		}
+	}
+
+	return nil
+}
+
 // ValidateMLERequest validates an MLE request for common issues
 func ValidateMLERequest(request MLERequest, globalEntities GlobalEntitySummary) error {
 	var errors []ValidationError
