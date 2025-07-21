@@ -130,11 +130,12 @@ func (s *MLESolver) CalculateLogLikelihood() float64 {
 		lambdaHome := math.Exp(homeAttack - awayDefense + s.params.HomeAdvantage)
 		lambdaAway := math.Exp(awayAttack - homeDefense)
 		
+		// Direct calculation for optimization (performance critical)
+		// ScoreMatrix would be overkill here - we only need one specific scoreline probability,
+		// not the entire matrix. Creating a full matrix per match would be much slower.
 		probHome := PoissonProb(lambdaHome, match.HomeGoals)
 		probAway := PoissonProb(lambdaAway, match.AwayGoals)
-		
-		adjustment := s.DixonColesAdjustment(match.HomeGoals, match.AwayGoals, s.params.Rho)
-		
+		adjustment := DixonColesAdjustment(match.HomeGoals, match.AwayGoals, s.params.Rho)
 		prob := probHome * probAway * adjustment
 		if prob > 0 {
 			// Apply time weighting to log-likelihood
@@ -223,25 +224,6 @@ func (s *MLESolver) normalizeRatings() {
 }
 
 
-// DixonColesAdjustment applies correction for correlation in low-scoring matches
-func (s *MLESolver) DixonColesAdjustment(homeGoals, awayGoals int, rho float64) float64 {
-	if homeGoals > 1 || awayGoals > 1 {
-		return 1.0
-	}
-	
-	switch {
-	case homeGoals == 0 && awayGoals == 0:
-		return 1 - rho
-	case homeGoals == 0 && awayGoals == 1:
-		return 1 + rho
-	case homeGoals == 1 && awayGoals == 0:
-		return 1 + rho
-	case homeGoals == 1 && awayGoals == 1:
-		return 1 - rho
-	default:
-		return 1.0
-	}
-}
 
 // getTimeWeight returns temporal weighting for matches
 func (s *MLESolver) getTimeWeight(season string) float64 {
@@ -291,7 +273,6 @@ func (s *MLESolver) getAdaptiveLearningRate(team string, baseLearningRate float6
 }
 
 // calculateExpectedMatchPoints calculates expected points for home and away teams in a match
-// Copied exactly from gist lines 622-658
 func (s *MLESolver) calculateExpectedMatchPoints(homeTeam, awayTeam string) (float64, float64) {
 	homeAttack := s.params.AttackRatings[homeTeam]
 	homeDefense := s.params.DefenseRatings[homeTeam]
@@ -301,34 +282,13 @@ func (s *MLESolver) calculateExpectedMatchPoints(homeTeam, awayTeam string) (flo
 	lambdaHome := math.Exp(homeAttack - awayDefense + s.params.HomeAdvantage)
 	lambdaAway := math.Exp(awayAttack - homeDefense)
 	
-	// Calculate probabilities for different outcomes
-	var homeWinProb, drawProb, awayWinProb float64
-	
-	// Get simulation parameters for goal simulation bound
-	simParams := s.options.SimParams
-
-	// Sum probabilities for all possible score combinations
-	for homeGoals := 0; homeGoals <= simParams.GoalSimulationBound; homeGoals++ {
-		for awayGoals := 0; awayGoals <= simParams.GoalSimulationBound; awayGoals++ {
-			probHome := PoissonProb(lambdaHome, homeGoals)
-			probAway := PoissonProb(lambdaAway, awayGoals)
-			adjustment := s.DixonColesAdjustment(homeGoals, awayGoals, s.params.Rho)
-			
-			matchProb := probHome * probAway * adjustment
-			
-			if homeGoals > awayGoals {
-				homeWinProb += matchProb
-			} else if homeGoals == awayGoals {
-				drawProb += matchProb
-			} else {
-				awayWinProb += matchProb
-			}
-		}
-	}
+	// Create score matrix and get match odds
+	scoreMatrix := NewScoreMatrix(lambdaHome, lambdaAway, s.params.Rho, s.options.SimParams.GoalSimulationBound)
+	odds := scoreMatrix.MatchOdds()
 	
 	// Calculate expected points (3 for win, 1 for draw, 0 for loss)
-	homeExpectedPoints := 3*homeWinProb + 1*drawProb
-	awayExpectedPoints := 3*awayWinProb + 1*drawProb
+	homeExpectedPoints := 3*odds[0] + 1*odds[1]  // home_win + draw
+	awayExpectedPoints := 3*odds[2] + 1*odds[1]  // away_win + draw
 	
 	return homeExpectedPoints, awayExpectedPoints
 }
@@ -343,30 +303,7 @@ func (s *MLESolver) CalculateMatchProbabilities(homeTeam, awayTeam string) [3]fl
 	lambdaHome := math.Exp(homeAttack - awayDefense + s.params.HomeAdvantage)
 	lambdaAway := math.Exp(awayAttack - homeDefense)
 	
-	// Calculate probabilities for different outcomes
-	var homeWinProb, drawProb, awayWinProb float64
-	
-	// Get simulation parameters for goal simulation bound
-	simParams := s.options.SimParams
-
-	// Sum probabilities for all possible score combinations
-	for homeGoals := 0; homeGoals <= simParams.GoalSimulationBound; homeGoals++ {
-		for awayGoals := 0; awayGoals <= simParams.GoalSimulationBound; awayGoals++ {
-			probHome := PoissonProb(lambdaHome, homeGoals)
-			probAway := PoissonProb(lambdaAway, awayGoals)
-			adjustment := s.DixonColesAdjustment(homeGoals, awayGoals, s.params.Rho)
-			
-			matchProb := probHome * probAway * adjustment
-			
-			if homeGoals > awayGoals {
-				homeWinProb += matchProb
-			} else if homeGoals == awayGoals {
-				drawProb += matchProb
-			} else {
-				awayWinProb += matchProb
-			}
-		}
-	}
-	
-	return [3]float64{homeWinProb, drawProb, awayWinProb}
+	// Create score matrix and return match odds
+	scoreMatrix := NewScoreMatrix(lambdaHome, lambdaAway, s.params.Rho, s.options.SimParams.GoalSimulationBound)
+	return scoreMatrix.MatchOdds()
 }
