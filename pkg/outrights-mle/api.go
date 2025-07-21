@@ -49,21 +49,8 @@ func RunSimulation(request MLERequest) (*MLEResult, error) {
 		teams = append(teams, team)
 	}
 
-	// Generate match odds for all team combinations (n * (n-1) fixtures)
-	var matchOdds []MatchOdds
-	for i, homeTeam := range teams {
-		for j, awayTeam := range teams {
-			if i != j { // Skip same team vs same team
-				fixture := fmt.Sprintf("%s vs %s", homeTeam.Name, awayTeam.Name)
-				probabilities := solver.CalculateMatchProbabilities(homeTeam.Name, awayTeam.Name)
-				
-				matchOdds = append(matchOdds, MatchOdds{
-					Fixture:       fixture,
-					Probabilities: probabilities,
-				})
-			}
-		}
-	}
+	// Generate match odds per league for current season teams only
+	matchOdds := generateFixturesPerLeague(teams, solver, request)
 
 	result := &MLEResult{
 		Teams:            teams,
@@ -328,6 +315,53 @@ func truncateString(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// generateFixturesPerLeague generates match odds for teams within their respective leagues only
+// Uses leagueGroups if available, otherwise falls back to latest season teams
+func generateFixturesPerLeague(teams []Team, solver *MLESolver, request MLERequest) []MatchOdds {
+	var matchOdds []MatchOdds
+	
+	// Create a map of team name to Team for efficient lookup
+	teamMap := make(map[string]Team)
+	for _, team := range teams {
+		teamMap[team.Name] = team
+	}
+	
+	// Determine current teams per league
+	processor := NewEventProcessor(request.HistoricalData, false)
+	eventsByLeague := processor.GroupEventsByLeague()
+	latestSeason := processor.FindLatestSeason()
+	currentTeams := GetCurrentTeams(request.LeagueGroups, eventsByLeague, latestSeason)
+	
+	// Generate fixtures for each league separately
+	for league, leagueTeams := range currentTeams {
+		// Filter teams that exist in our optimized ratings
+		var validTeams []Team
+		for _, teamName := range leagueTeams {
+			if team, exists := teamMap[teamName]; exists {
+				validTeams = append(validTeams, team)
+			}
+		}
+		
+		// Generate all combinations within this league
+		for i, homeTeam := range validTeams {
+			for j, awayTeam := range validTeams {
+				if i != j { // Skip same team vs same team
+					fixture := fmt.Sprintf("%s vs %s", homeTeam.Name, awayTeam.Name)
+					probabilities := solver.CalculateMatchProbabilities(homeTeam.Name, awayTeam.Name)
+					
+					matchOdds = append(matchOdds, MatchOdds{
+						Fixture:       fixture,
+						League:        league,
+						Probabilities: probabilities,
+					})
+				}
+			}
+		}
+	}
+	
+	return matchOdds
 }
 
 
