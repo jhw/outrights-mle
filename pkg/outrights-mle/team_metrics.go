@@ -53,11 +53,11 @@ func calculateLeagueSeasonPointsWithSim(teamNames []string, params MLEParams, si
 	// Calculate expected total season points (current + simulated remaining)
 	expectedPoints := make(map[string]float64)
 	for i, team := range leagueTable {
-		total := 0.0
+		total := 0
 		for path := 0; path < nPaths; path++ {
 			total += simPoints.Points[i][path]
 		}
-		expectedPoints[team.Name] = total / float64(nPaths)
+		expectedPoints[team.Name] = float64(total) / float64(nPaths)
 	}
 	
 	return &SeasonPointsResult{
@@ -79,19 +79,19 @@ func newSimPointsFromLeagueTable(leagueTable []Team, nPaths int) *SimPoints {
 	sp := &SimPoints{
 		NPaths:         nPaths,
 		TeamNames:      make([]string, len(leagueTable)),
-		Points:         make([][]float64, len(leagueTable)),
-		GoalDifference: make([][]float64, len(leagueTable)),
+		Points:         make([][]int, len(leagueTable)),
+		GoalDifference: make([][]int, len(leagueTable)),
 		positionCache:  make(map[string]map[string][]float64),
 	}
 	
 	for i, team := range leagueTable {
 		sp.TeamNames[i] = team.Name
-		sp.Points[i] = make([]float64, nPaths)
-		sp.GoalDifference[i] = make([]float64, nPaths)
+		sp.Points[i] = make([]int, nPaths)
+		sp.GoalDifference[i] = make([]int, nPaths)
 		
 		// Initialize with current league table data (points and goal difference separately)
-		currentPoints := float64(team.Points)
-		currentGoalDiff := float64(team.GoalDifference)
+		currentPoints := team.Points
+		currentGoalDiff := team.GoalDifference
 		
 		for j := 0; j < nPaths; j++ {
 			sp.Points[i][j] = currentPoints

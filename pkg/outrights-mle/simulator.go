@@ -12,8 +12,8 @@ import (
 type SimPoints struct {
 	NPaths         int
 	TeamNames      []string
-	Points         [][]float64  // Match points (3/1/0) per team per simulation path
-	GoalDifference [][]float64  // Goal difference per team per simulation path
+	Points         [][]int  // Match points (3/1/0) per team per simulation path
+	GoalDifference [][]int  // Goal difference per team per simulation path
 	// Cache for position probabilities to avoid expensive recalculations
 	positionCache map[string]map[string][]float64 // sortedTeamsKey -> teamName -> probabilities
 }
@@ -22,20 +22,20 @@ func newSimPoints(teamNames []string, nPaths int) *SimPoints {
 	sp := &SimPoints{
 		NPaths:         nPaths,
 		TeamNames:      make([]string, len(teamNames)),
-		Points:         make([][]float64, len(teamNames)),
-		GoalDifference: make([][]float64, len(teamNames)),
+		Points:         make([][]int, len(teamNames)),
+		GoalDifference: make([][]int, len(teamNames)),
 		positionCache:  make(map[string]map[string][]float64),
 	}
 	
 	for i, teamName := range teamNames {
 		sp.TeamNames[i] = teamName
-		sp.Points[i] = make([]float64, nPaths)
-		sp.GoalDifference[i] = make([]float64, nPaths)
+		sp.Points[i] = make([]int, nPaths)
+		sp.GoalDifference[i] = make([]int, nPaths)
 		
 		// Initialize all paths to 0
 		for j := 0; j < nPaths; j++ {
-			sp.Points[i][j] = 0.0
-			sp.GoalDifference[i][j] = 0.0
+			sp.Points[i][j] = 0
+			sp.GoalDifference[i][j] = 0
 		}
 	}
 	
@@ -78,21 +78,21 @@ func (sp *SimPoints) simulate(homeTeam, awayTeam string, solver *MLESolver) {
 		awayGoals := PoissonSample(lambdaAway)
 		
 		// Calculate points and goal difference
-		var homePoints, awayPoints float64
+		var homePoints, awayPoints int
 		if homeGoals > awayGoals {
-			homePoints = 3.0
-			awayPoints = 0.0
+			homePoints = 3
+			awayPoints = 0
 		} else if homeGoals == awayGoals {
-			homePoints = 1.0
-			awayPoints = 1.0
+			homePoints = 1
+			awayPoints = 1
 		} else {
-			homePoints = 0.0
-			awayPoints = 3.0
+			homePoints = 0
+			awayPoints = 3
 		}
 		
 		// Track points and goal difference separately
-		homeGD := float64(homeGoals - awayGoals)
-		awayGD := float64(awayGoals - homeGoals)
+		homeGD := homeGoals - awayGoals
+		awayGD := awayGoals - homeGoals
 		
 		// Add match points (3/1/0 only)
 		sp.Points[homeIdx][path] += homePoints
@@ -135,8 +135,8 @@ func (sp *SimPoints) positionProbabilities(teamNames []string) map[string][]floa
 	}
 	
 	// Extract points and goal difference for selected teams
-	selectedPoints := make([][]float64, len(selectedIndices))
-	selectedGoalDiff := make([][]float64, len(selectedIndices))
+	selectedPoints := make([][]int, len(selectedIndices))
+	selectedGoalDiff := make([][]int, len(selectedIndices))
 	for i, idx := range selectedIndices {
 		selectedPoints[i] = sp.Points[idx]
 		selectedGoalDiff[i] = sp.GoalDifference[idx]
@@ -163,8 +163,8 @@ func (sp *SimPoints) positionProbabilities(teamNames []string) map[string][]floa
 				GoalDifference float64
 			}{
 				TeamIndex:      i,
-				Points:         selectedPoints[i][path],
-				GoalDifference: selectedGoalDiff[i][path],
+				Points:         float64(selectedPoints[i][path]),
+				GoalDifference: float64(selectedGoalDiff[i][path]),
 			}
 		}
 		
