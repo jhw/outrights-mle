@@ -1,30 +1,11 @@
 package outrightsmle
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 )
 
-// loadMarketsFromFile loads markets from fixtures/markets.json
-func loadMarketsFromFile(filename string) ([]Market, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("opening file %s: %w", filename, err)
-	}
-	defer file.Close()
-
-	var markets []Market
-	decoder := json.NewDecoder(file)
-
-	if err := decoder.Decode(&markets); err != nil {
-		return nil, fmt.Errorf("decoding JSON: %w", err)
-	}
-
-	return markets, nil
-}
 
 // parsePayoff parses payoff expressions like "1|4x0.25|19x0" meaning 1 winner gets 1, 4 get 0.25, 19 losers get 0
 // Adapted from go-outrights/pkg/outrights/markets.go
